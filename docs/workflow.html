@@ -114,7 +114,7 @@ const EDGES=[
  {id:"S1",from:"TPL",to:"INS",mode:"manual",tx:"clone"},
  {id:"S2",from:"INS",to:"ENV",mode:"auto",  tx:"ติดตั้งแล้ว"},
  {id:"S3",from:"ENV",to:"TDM",mode:"auto",  tx:"deploy ns-tdm"},
- {id:"S4",from:"TDM",to:"DEV",mode:"manual",tx:"เริ่ม dev loop",lx:352,ly:148},
+ {id:"S4",from:"TDM",to:"DEV",mode:"manual",tx:"เริ่ม dev loop",lx:330,ly:110},
  // inner loop
  {id:"D1",from:"DEV",to:"INN",mode:"auto",  tx:"ลงมือ"},
  {id:"D2",from:"INN",to:"FXI",mode:"manual",tx:"🔴 fail"},
@@ -168,6 +168,11 @@ function anchors(n){return {cx:n.x+n.w/2,cy:n.y+n.h/2,L:[n.x,n.y+n.h/2],R:[n.x+n
 function routePath(a,b){
   const A=anchors(a),B=anchors(b),dx=B.cx-A.cx,dy=B.cy-A.cy;
   let s,e,d,mid;
+  // Long left-going edge: exit via top/bottom to avoid cutting through other nodes
+  if(dx<-60){
+    if(dy>60){s=A.B;e=B.T;}else if(dy<-60){s=A.T;e=B.B;}
+    if(s){const vy=s[1]+(e[1]-s[1])*0.4;d=`M${s[0]},${s[1]} V${vy} H${e[0]} V${e[1]}`;mid=[(s[0]+e[0])/2,vy];return{d,mid};}
+  }
   if(Math.abs(dx)>=Math.abs(dy)){
     s=dx>=0?A.R:A.L; e=dx>=0?B.L:B.R; const mx=(s[0]+e[0])/2;
     d=`M${s[0]},${s[1]} H${mx} V${e[1]} H${e[0]}`; mid=[mx,(s[1]+e[1])/2];

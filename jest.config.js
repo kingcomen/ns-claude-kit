@@ -14,7 +14,11 @@ module.exports = SuiteCloudJestConfiguration.build({
 });
 
 // Extra knobs merged on top of the preset:
-module.exports.collectCoverageFrom = ['src/FileCabinet/SuiteScripts/**/*.js'];
+// Exclude Suitelet entry files (sl_*_main.js) — those are E2E-tested, not unit-tested
+module.exports.collectCoverageFrom = [
+  'src/FileCabinet/SuiteScripts/**/*.js',
+  '!src/FileCabinet/SuiteScripts/**/sl_*_main.js',
+];
 module.exports.coverageThreshold = {
   global: { branches: 50, functions: 60, lines: 60, statements: 60 },
 };

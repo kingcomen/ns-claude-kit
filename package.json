@@ -22,10 +22,9 @@
     "guide": "npm run guide:capture && npm run guide:build",
     "inner": "npm run lint && npm test",
     "outer": "npm run validate && npm run deploy:sb && npm run e2e && npm run e2e:summary",
-    "ci": "npm run lint && npm test && npm run validate"
+    "ci": "npm run lint && npm test"
   },
   "devDependencies": {
-    "@oracle/suitecloud-cli": "^3.1.2",
     "@oracle/suitecloud-unit-testing": "^1.5.0",
     "@playwright/test": "^1.54.0",
     "@types/node": "^22.0.0",
