@@ -3,6 +3,8 @@
 สรุป flow การทำงาน + tech stack + config สำหรับพัฒนา NetSuite ด้วย Claude Code
 ดรอปทั้งโฟลเดอร์นี้ลง repo ใหม่ของแต่ละ feature ได้เลย
 
+[![Interactive Workflow Diagram](https://img.shields.io/badge/▶%20Interactive%20Flow-ดู%20workflow%20diagram-blue?style=for-the-badge)](https://kingcomen.github.io/ns-claude-kit/workflow.html)
+
 ---
 
 ## 1. Flow loop
