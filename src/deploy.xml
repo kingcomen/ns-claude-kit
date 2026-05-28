@@ -1,0 +1,10 @@
+<deploy>
+    <configuration>
+        <path>~/Objects/customscript_xxx_sl.xml</path>
+    </configuration>
+    <files>
+        <path>~/FileCabinet/SuiteScripts/XXX/sl_xxx_main.js</path>
+        <path>~/FileCabinet/SuiteScripts/XXX/sl_xxx_main.html</path>
+        <path>~/FileCabinet/SuiteScripts/XXX/lib_xxx_service.js</path>
+    </files>
+</deploy>

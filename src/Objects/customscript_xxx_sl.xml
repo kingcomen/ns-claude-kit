@@ -1,0 +1,20 @@
+<script scriptid="customscript_xxx_sl">
+    <description>XXX Suitelet — replace with real description</description>
+    <isinactive>F</isinactive>
+    <name>XXX Suitelet</name>
+    <notifyadmins>F</notifyadmins>
+    <notifyowner>T</notifyowner>
+    <scriptfile>[/SuiteScripts/XXX/sl_xxx_main.js]</scriptfile>
+    <scripttype>SUITELET</scripttype>
+    <defaultfunction>onRequest</defaultfunction>
+    <scriptdeployments>
+        <scriptdeployment scriptid="customdeploy_xxx_sl">
+            <deploynumber>1</deploynumber>
+            <isdeployed>T</isdeployed>
+            <ispublic>F</ispublic>
+            <loglevel>DEBUG</loglevel>
+            <status>RELEASED</status>
+            <title>XXX Suitelet</title>
+        </scriptdeployment>
+    </scriptdeployments>
+</script>

@@ -1,0 +1,114 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+# ─── INNER LOOP ───────────────────────────────────────────────────────────────
+# Lint + Jest + local SDF validate. No secrets required.
+jobs:
+  inner-loop:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # SuiteCloud SDK is a Java jar — JDK required for project:validate
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - run: npm ci
+      - run: npm install -g --acceptSuiteCloudSDKLicense @oracle/suitecloud-cli
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Unit tests
+        run: npm run test:cov
+
+      - name: SDF local validate
+        run: suitecloud project:validate
+
+# ─── OUTER LOOP ───────────────────────────────────────────────────────────────
+# Deploy to CI SB (TBA) → Playwright E2E → upload report.
+# Uses GitHub Environment "sandbox-ci" which holds all SB secrets.
+# Setup: Settings → Environments → sandbox-ci → add secrets below.
+#
+# Required secrets (in sandbox-ci environment):
+#   NS_ACCOUNT_ID         e.g. 1234567_SB1
+#   NS_BASE_URL           e.g. https://1234567-sb1.app.netsuite.com
+#   NS_EMAIL              dedicated CI test user (2FA disabled, or set TOTP)
+#   NS_PASSWORD           CI test user password
+#   NS_TOTP_SECRET        base32 TOTP seed — omit if test user has 2FA disabled
+#   TDM_SEED_URL          ns-tdm seed RESTlet URL
+#   TDM_TEARDOWN_URL      ns-tdm teardown RESTlet URL
+#   SUITECLOUD_AUTHID     TBA auth ID configured in the CI runner
+#   SUITECLOUD_TOKENID    TBA token ID
+#   SUITECLOUD_TOKENSECRET TBA token secret
+  outer-loop:
+    needs: inner-loop
+    runs-on: ubuntu-latest
+    environment: sandbox-ci
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - run: npm ci
+      - run: npm install -g --acceptSuiteCloudSDKLicense @oracle/suitecloud-cli
+      - run: npx playwright install chromium --with-deps
+
+      - name: Configure SuiteCloud TBA auth
+        env:
+          SUITECLOUD_AUTHID: ${{ secrets.SUITECLOUD_AUTHID }}
+          SUITECLOUD_TOKENID: ${{ secrets.SUITECLOUD_TOKENID }}
+          SUITECLOUD_TOKENSECRET: ${{ secrets.SUITECLOUD_TOKENSECRET }}
+          NS_ACCOUNT_ID: ${{ secrets.NS_ACCOUNT_ID }}
+        # Writes auth config non-interactively — verify flags match your CLI version
+        run: |
+          suitecloud account:setup \
+            --authid "$SUITECLOUD_AUTHID" \
+            --accountid "$NS_ACCOUNT_ID" \
+            --tokenid "$SUITECLOUD_TOKENID" \
+            --tokensecret "$SUITECLOUD_TOKENSECRET"
+
+      - name: Deploy to CI SB
+        env:
+          SUITECLOUD_AUTHID: ${{ secrets.SUITECLOUD_AUTHID }}
+        run: suitecloud project:deploy --authid "$SUITECLOUD_AUTHID"
+
+      - name: Playwright E2E
+        env:
+          NS_BASE_URL: ${{ secrets.NS_BASE_URL }}
+          NS_EMAIL: ${{ secrets.NS_EMAIL }}
+          NS_PASSWORD: ${{ secrets.NS_PASSWORD }}
+          NS_TOTP_SECRET: ${{ secrets.NS_TOTP_SECRET }}
+          TDM_SEED_URL: ${{ secrets.TDM_SEED_URL }}
+          TDM_TEARDOWN_URL: ${{ secrets.TDM_TEARDOWN_URL }}
+        run: npm run e2e
+
+      - name: E2E summary
+        if: always()
+        run: npm run e2e:summary
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ github.run_number }}
+          path: playwright-report/
+          retention-days: 14

@@ -1,0 +1,14 @@
+node_modules/
+.env
+playwright/.auth/
+playwright-report/
+test-results/
+coverage/
+*.log
+.DS_Store
+# SDF local auth / project files that shouldn't be committed
+project.json
+.suitecloud-sdk/
+
+# guide build artifacts
+guide-output/
