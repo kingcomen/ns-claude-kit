@@ -25,14 +25,14 @@ define(['N/file', 'N/log', 'N/runtime', './lib_sdb_service'], function (file, lo
 
       if (context.request.method === 'GET') {
         const html    = file.load({ id: HTML_PATH }).getContents();
-        const userCtx = JSON.stringify({ employeeId: user.id, isManager });
+        const userCtx = JSON.stringify({ employeeId: user.id, isManager: isManager });
         context.response.write(html.replace('"__USER_CTX__"', userCtx));
       } else {
         const body = JSON.parse(context.request.body);
         if (!body.dateFrom || !body.dateTo) throw new Error('Missing required fields: dateFrom, dateTo');
 
         const repId  = isManager ? (body.repId || null) : user.id;
-        const params = { dateFrom: body.dateFrom, dateTo: body.dateTo, repId };
+        const params = { dateFrom: body.dateFrom, dateTo: body.dateTo, repId: repId };
 
         const result = {
           revenue:      service.fetchRevenue(params),
@@ -52,5 +52,5 @@ define(['N/file', 'N/log', 'N/runtime', './lib_sdb_service'], function (file, lo
     }
   }
 
-  return { onRequest };
+  return { onRequest: onRequest };
 });

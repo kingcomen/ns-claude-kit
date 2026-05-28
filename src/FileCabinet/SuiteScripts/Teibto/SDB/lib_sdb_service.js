@@ -100,5 +100,5 @@ define(['N/query', 'N/format', 'N/log'], function (query, format, log) {
     return result.asMappedResults();
   }
 
-  return { makeTimer, toSuiteQLDate, fetchRevenue, fetchTopCustomers, fetchPipeline, fetchTopItems };
+  return { makeTimer: makeTimer, toSuiteQLDate: toSuiteQLDate, fetchRevenue: fetchRevenue, fetchTopCustomers: fetchTopCustomers, fetchPipeline: fetchPipeline, fetchTopItems: fetchTopItems };
 });

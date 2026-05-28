@@ -8,7 +8,7 @@ import { test, expect } from '@playwright/test';
 
 test('Suitelet responds without error', async ({ page }) => {
   const response = await page.goto(
-    '/app/site/hosting/scriptlet.nl?script=customscript_sdb_sl&deploy=1',
+    '/app/site/hosting/scriptlet.nl?script=3292&deploy=1',
   );
   expect(response?.status()).not.toBe(404);
   expect(response?.status()).not.toBe(500);

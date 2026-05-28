@@ -6,7 +6,6 @@
     <notifyowner>T</notifyowner>
     <scriptfile>[/SuiteScripts/Teibto/SDB/sl_sdb_main.js]</scriptfile>
     <scripttype>SUITELET</scripttype>
-    <defaultfunction>onRequest</defaultfunction>
     <scriptdeployments>
         <scriptdeployment scriptid="customdeploy_sdb_sl">
             <deploynumber>1</deploynumber>
