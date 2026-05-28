@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Teibto · Sales Dashboard</title>
+  <link rel="stylesheet" href="/sc/SuiteScripts/Teibto/ds/v1.26.2/tbt-theme.css">
+  <script type="module" src="/sc/SuiteScripts/Teibto/ds/v1.26.2/index.js"></script>
+</head>
+<body>
+  <tbt-app-shell>
+    <tbt-menubar slot="menubar" title="Teibto ERP"></tbt-menubar>
+
+    <main slot="content">
+
+      <!-- Filter bar -->
+      <tbt-section title="ตัวกรอง">
+        <tbt-form id="filter-form">
+          <tbt-input id="date-from" label="ตั้งแต่วันที่" type="date"></tbt-input>
+          <tbt-input id="date-to"   label="ถึงวันที่"     type="date"></tbt-input>
+          <tbt-select id="rep-select" label="พนักงานขาย" hidden></tbt-select>
+          <tbt-button id="btn-load" variant="primary">โหลดข้อมูล</tbt-button>
+        </tbt-form>
+      </tbt-section>
+
+      <!-- Revenue by month -->
+      <tbt-section id="section-revenue" title="รายได้รายเดือน">
+        <tbt-alert id="msg-revenue" type="info">กรุณาเลือกช่วงวันที่แล้วกดโหลดข้อมูล</tbt-alert>
+        <div id="table-revenue" hidden>
+          <table>
+            <thead><tr><th>เดือน</th><th>ยอดรวม (บาท)</th></tr></thead>
+            <tbody id="body-revenue"></tbody>
+          </table>
+        </div>
+      </tbt-section>
+
+      <!-- Top customers -->
+      <tbt-section id="section-customers" title="ลูกค้ายอดสูงสุด 10 ราย">
+        <div id="table-customers" hidden>
+          <table>
+            <thead><tr><th>ลูกค้า</th><th>ยอดรวม (บาท)</th></tr></thead>
+            <tbody id="body-customers"></tbody>
+          </table>
+        </div>
+      </tbt-section>
+
+      <!-- Pipeline by stage -->
+      <tbt-section id="section-pipeline" title="Pipeline โอกาสขาย">
+        <div id="table-pipeline" hidden>
+          <table>
+            <thead><tr><th>ขั้นตอน</th><th>จำนวน</th><th>มูลค่าคาดการณ์ (บาท)</th></tr></thead>
+            <tbody id="body-pipeline"></tbody>
+          </table>
+        </div>
+      </tbt-section>
+
+      <!-- Top items -->
+      <tbt-section id="section-items" title="สินค้าขายดี 10 รายการ">
+        <div id="table-items" hidden>
+          <table>
+            <thead><tr><th>สินค้า</th><th>จำนวน</th><th>ยอดรวม (บาท)</th></tr></thead>
+            <tbody id="body-items"></tbody>
+          </table>
+        </div>
+      </tbt-section>
+
+    </main>
+  </tbt-app-shell>
+
+  <script type="module">
+    const USER = "__USER_CTX__";
+    const SUITELET_URL = window.location.pathname + window.location.search;
+
+    // Show rep selector only for managers
+    if (USER.isManager) {
+      document.getElementById('rep-select').removeAttribute('hidden');
+    }
+
+    // Default date range: first day of current month → today
+    const today = new Date();
+    const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    document.getElementById('date-from').value = firstOfMonth.toISOString().slice(0, 10);
+    document.getElementById('date-to').value   = today.toISOString().slice(0, 10);
+
+    function fmt(n) {
+      return Number(n).toLocaleString('th-TH', { minimumFractionDigits: 2 });
+    }
+
+    function fillTable(tbodyId, rows, cols) {
+      const tbody = document.getElementById(tbodyId);
+      tbody.innerHTML = rows.map(r =>
+        '<tr>' + cols.map(c => '<td>' + (r[c] ?? '') + '</td>').join('') + '</tr>'
+      ).join('');
+    }
+
+    async function loadDashboard() {
+      const btn = document.getElementById('btn-load');
+      btn.disabled = true;
+
+      const payload = {
+        dateFrom: document.getElementById('date-from').value,
+        dateTo:   document.getElementById('date-to').value,
+        repId:    USER.isManager ? (document.getElementById('rep-select').value || null) : null,
+      };
+
+      try {
+        const res = await fetch(SUITELET_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error('POST failed: ' + res.status);
+        const data = await res.json();
+
+        // Revenue
+        fillTable('body-revenue', data.revenue,
+          data.revenue.map(r => ({ month: r.month, total: fmt(r.total) })),
+          ['month', 'total']);
+        document.getElementById('table-revenue').hidden = false;
+        document.getElementById('msg-revenue').hidden   = true;
+
+        // Top customers
+        fillTable('body-customers',
+          data.topCustomers.map(r => ({ customer: r.customer, total: fmt(r.total) })),
+          ['customer', 'total']);
+        document.getElementById('table-customers').hidden = false;
+
+        // Pipeline
+        fillTable('body-pipeline',
+          data.pipeline.map(r => ({ stage: r.stage, count: r.count, total: fmt(r.total) })),
+          ['stage', 'count', 'total']);
+        document.getElementById('table-pipeline').hidden = false;
+
+        // Top items
+        fillTable('body-items',
+          data.topItems.map(r => ({ item: r.item, qty: r.qty, total: fmt(r.total) })),
+          ['item', 'qty', 'total']);
+        document.getElementById('table-items').hidden = false;
+
+      } catch (err) {
+        document.getElementById('msg-revenue').setAttribute('type', 'error');
+        document.getElementById('msg-revenue').textContent = 'โหลดข้อมูลไม่สำเร็จ: ' + err.message;
+        document.getElementById('msg-revenue').hidden = false;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    document.getElementById('btn-load').addEventListener('click', loadDashboard);
+    // Auto-load on page open
+    loadDashboard();
+  </script>
+</body>
+</html>
