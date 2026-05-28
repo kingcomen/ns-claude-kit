@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flow Editor — Draggable</title>
+<!-- @author Wichit Wongta -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=JetBrains+Mono:wght@400;500;700&family=Sora:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#fff; --panel:#fff; --grid:rgba(80,110,160,.07);
+    --tx:#1c2433; --mut:#5b6783; --line:#e7e5e4;
+    --a:#2563eb; --a-t:rgba(37,99,235,.10);
+    --b:#0d9488; --b-t:rgba(13,148,136,.10);
+    --c:#d97706; --c-t:rgba(217,119,6,.12);
+    --d:#7c3aed; --d-t:rgba(124,58,237,.10);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Sora,system-ui,sans-serif;color:var(--tx);background:var(--bg);padding:20px 16px;line-height:1.5}
+  .wrap{max-width:1040px;margin:0 auto}
+  h1{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:25px;letter-spacing:-.02em}
+  .sub{color:var(--mut);font-size:13px;margin-bottom:14px}
+  .bar{display:flex;gap:9px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:14px;padding:11px;margin-bottom:13px;flex-wrap:wrap}
+  .chk{display:flex;align-items:center;gap:6px;color:var(--mut);font-family:"JetBrains Mono",monospace;font-size:12px}
+  .speed{display:flex;align-items:center;gap:8px;color:var(--mut);font-family:"JetBrains Mono",monospace;font-size:12px}
+  .spacer{flex:1}
+  .btn{font-family:"JetBrains Mono",monospace;font-weight:700;font-size:13px;border:none;border-radius:11px;padding:10px 16px;cursor:pointer}
+  .btn.run{background:linear-gradient(180deg,#57dba0,#36c386);color:#042414}
+  .btn.run:disabled{opacity:.45;cursor:default}
+  .btn.ghost{background:#fff;color:var(--mut);border:1px solid var(--line)}
+  .btn.exp{background:var(--d);color:#fff}
+  .btn.svg{background:var(--b);color:#fff}
+  .stage{background:linear-gradient(var(--grid) 1px,transparent 1px) 0 0/26px 26px,linear-gradient(90deg,var(--grid) 1px,transparent 1px) 0 0/26px 26px,#fff;border:1px solid var(--line);border-radius:16px;padding:8px;overflow:auto}
+  .svgwrap{min-width:880px}
+  svg{display:block;width:100%;height:auto;touch-action:none}
+  .node{width:100%;height:100%;border-radius:12px;border:1.6px solid var(--bd,#ccc);background:var(--bgc,#f1f4f9);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;cursor:grab;font-family:"JetBrains Mono",monospace;text-align:center;padding:4px;opacity:.55;filter:saturate(.55);transition:box-shadow .3s,filter .3s,opacity .3s;user-select:none}
+  .node.dragging{cursor:grabbing;opacity:1;filter:none;box-shadow:0 8px 24px -6px rgba(20,30,60,.35);z-index:5}
+  .node .nt{font-weight:700;font-size:13px;color:var(--tx)} .node .ns{font-size:9.5px;color:var(--mut)}
+  .node.on{opacity:1;filter:none;box-shadow:0 0 0 1px var(--bd),0 0 24px -4px var(--glow,var(--bd))}
+  .node.pop{transform:scale(1.06)} .node.sel{outline:2px dashed rgba(60,80,120,.5);outline-offset:3px}
+  .elabel{display:inline-block;background:rgba(255,255,255,.94);border:1px solid var(--line);border-radius:8px;padding:3px 7px;font-family:"JetBrains Mono",monospace;font-size:10px;color:#374151;opacity:.7;white-space:nowrap;pointer-events:auto;cursor:grab;touch-action:none}
+  .elabel.ldrag{cursor:grabbing;opacity:1;box-shadow:0 6px 16px -5px rgba(20,30,60,.4)}
+  .elabel[contenteditable="true"]{opacity:1;outline:2px solid var(--a);background:#fff;cursor:text}
+  .node.editing{cursor:text}
+  .node .nt[contenteditable="true"],.node .ns[contenteditable="true"]{outline:1px solid var(--a);border-radius:4px;padding:0 3px;background:#fff}
+  path.edge{fill:none;stroke:rgba(100,116,139,.34);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  path.edge.async{stroke-dasharray:8 7}
+  path.edge.flow{stroke:var(--cc);stroke-width:2.6;stroke-dasharray:7 7;animation:dash 1s linear infinite;filter:drop-shadow(0 0 6px var(--cc))}
+  path.edge.done{stroke:var(--cc);opacity:.85}
+  @keyframes dash{to{stroke-dashoffset:-28}}
+  circle.token{filter:drop-shadow(0 0 7px var(--cc));pointer-events:none}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+  @media(max-width:720px){.row{grid-template-columns:1fr}}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px}
+  .card h3{font-family:"Bricolage Grotesque",sans-serif;font-size:12.5px;text-transform:uppercase;margin-bottom:8px}
+  .log{height:150px;overflow:auto;background:#f7f8fb;border:1px solid var(--line);border-radius:10px;padding:10px;font-family:"JetBrains Mono",monospace;font-size:11.5px}
+  .log .ln{padding:2px 0;border-bottom:1px solid rgba(16,24,40,.05)}
+  textarea{width:100%;height:150px;font-family:"JetBrains Mono",monospace;font-size:11px;border:1px solid var(--line);border-radius:10px;padding:10px;resize:vertical;color:var(--tx);background:#fbfcfe}
+  .hint{font-size:11.5px;color:var(--mut);margin-top:7px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>ns-claude-kit — Install · Setup · Run Tests</h1>
+  <div class="sub">🟣 one-time setup (บนสุด) &nbsp;→&nbsp; 🔵 inner loop &nbsp;→&nbsp; 🟢 outer loop &nbsp;→&nbsp; PR &nbsp;·&nbsp; ลาก node ได้ · ดับเบิลคลิก = แก้ข้อความ · @author Wichit Wongta</div>
+  <div class="bar">
+    <label class="chk"><input type="checkbox" id="snap" checked> snap grid 13px</label>
+    <div class="spacer"></div>
+    <div class="speed">speed <input id="speed" type="range" min="0.4" max="2.2" step="0.1" value="1"></div>
+    <button class="btn ghost" id="reset">Reset run</button>
+    <button class="btn exp" id="export">⤓ NODES</button>
+    <button class="btn svg" id="svgexport">⬇ SVG</button>
+    <button class="btn run" id="run">▶ Run</button>
+  </div>
+  <div class="stage"><div class="svgwrap">
+    <svg id="svg" viewBox="0 0 880 440" xmlns="http://www.w3.org/2000/svg">
+      <defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="rgba(120,135,165,.6)"/></marker></defs>
+      <g id="gEdges"></g><g id="gLabels"></g><g id="gNodes"></g><g id="gTokens"></g>
+    </svg>
+  </div></div>
+  <div class="row">
+    <div class="card"><h3>Event Log</h3><div class="log" id="log"><div class="ln" style="color:var(--mut)">ลาก node ได้เลย / กด Run</div></div></div>
+    <div class="card"><h3>Export — คัดลอกไปใส่ใน code</h3><textarea id="out" readonly placeholder="กด Export NODES…"></textarea><div class="hint">⤓ NODES = พิกัด+ข้อความ (วางทับ code) · ⬇ SVG = ดาวน์โหลดรูป native SVG (พกพาได้ + โค้ดโชว์ในกล่องนี้)</div></div>
+  </div>
+</div>
+
+<script>
+const SVGNS="http://www.w3.org/2000/svg", XH="http://www.w3.org/1999/xhtml";
+const $=s=>document.querySelector(s);
+const svg=$("#svg"),gEdges=$("#gEdges"),gLabels=$("#gLabels"),gNodes=$("#gNodes"),gTokens=$("#gTokens"),logEl=$("#log");
+function el(t,a){const e=document.createElementNS(SVGNS,t);for(const k in a)e.setAttribute(k,a[k]);return e;}
+
+/* ====== data ====== */
+const NODES=[
+ // ── ONE-TIME SETUP (แถวบน) ──────────────────────────────────────────────
+ {id:"TPL",x:26,  y:26,  w:145,h:56,type:"d",t:"Use Template", s:"สร้าง feature repo"},
+ {id:"INS",x:200, y:26,  w:155,h:56,type:"a",t:"Install",      s:"npm i · CLI · Playwright"},
+ {id:"ENV",x:385, y:26,  w:155,h:56,type:"a",t:".env + Auth",  s:"credentials + account:setup"},
+ {id:"TDM",x:570, y:26,  w:155,h:56,type:"b",t:"Deploy ns-tdm",s:"ครั้งแรกต่อ SB"},
+ // ── DEV LOOP (แถวกลาง) ──────────────────────────────────────────────────
+ {id:"DEV",x:26,  y:224, w:130,h:56,type:"a",t:"/dev",         s:"เขียน / แก้ code"},
+ {id:"INN",x:188, y:224, w:155,h:56,type:"b",t:"npm run inner",s:"lint + Jest"},
+ {id:"DSB",x:375, y:224, w:155,h:56,type:"a",t:"deploy:sb",    s:"push ขึ้น Sandbox"},
+ {id:"E2E",x:562, y:224, w:155,h:56,type:"b",t:"npm run e2e",  s:"Playwright E2E"},
+ {id:"PR", x:749, y:224, w:110,h:56,type:"d",t:"Open PR",      s:"Gate 2 ✓"},
+ // ── FIX LOOPS (แถวล่าง) ─────────────────────────────────────────────────
+ {id:"FXI",x:188, y:356, w:155,h:56,type:"c",t:"Fix & retry",  s:"inner loop"},
+ {id:"FXO",x:562, y:356, w:155,h:56,type:"c",t:"Fix & retry",  s:"outer loop → /dev"},
+];
+const COL={a:"--a",b:"--b",c:"--c",d:"--d"};
+const EDGES=[
+ // setup chain
+ {id:"S1",from:"TPL",to:"INS",mode:"manual",tx:"clone"},
+ {id:"S2",from:"INS",to:"ENV",mode:"auto",  tx:"ติดตั้งแล้ว"},
+ {id:"S3",from:"ENV",to:"TDM",mode:"auto",  tx:"deploy ns-tdm"},
+ {id:"S4",from:"TDM",to:"DEV",mode:"manual",tx:"เริ่ม dev loop",lx:352,ly:148},
+ // inner loop
+ {id:"D1",from:"DEV",to:"INN",mode:"auto",  tx:"ลงมือ"},
+ {id:"D2",from:"INN",to:"FXI",mode:"manual",tx:"🔴 fail"},
+ {id:"D3",from:"FXI",to:"INN",mode:"auto",  tx:"retry"},
+ // inner → outer
+ {id:"D4",from:"INN",to:"DSB",mode:"auto",  tx:"✅ green"},
+ {id:"D5",from:"DSB",to:"E2E",mode:"auto",  tx:"E2E"},
+ // outer loop
+ {id:"D6",from:"E2E",to:"FXO",mode:"manual",tx:"🔴 fail"},
+ {id:"D7",from:"FXO",to:"DEV",mode:"auto",  tx:"back to /dev"},
+ // outer → PR
+ {id:"D8",from:"E2E",to:"PR", mode:"auto",  tx:"✅ green"},
+];
+const SCEN={all:["S1","S2","S3","S4","D1","D4","D5","D8"]}, START={all:"TPL"};
+/* ================== */
+
+const nodeEls={},nodeFO={},edgeEls={},labelFO={},labelEls={};
+const byId=id=>NODES.find(n=>n.id===id);
+
+function render(){
+  EDGES.forEach(e=>{
+    const p=el("path",{class:"edge"+(e.mode==="manual"?" async":""),"marker-end":"url(#arrow)"});
+    const col=getComputedStyle(document.documentElement).getPropertyValue(COL[byId(e.to).type]).trim();
+    p.style.setProperty("--cc",col); gEdges.appendChild(p); edgeEls[e.id]=p;
+    const fo=el("foreignObject",{width:120,height:24});
+    const d=document.createElementNS(XH,"div"); d.className="elabel"; d.textContent=e.tx;
+    d.addEventListener("dblclick",ev=>{ev.stopPropagation(); if(running)return; editing=true; d.contentEditable="true"; d.focus();
+      const fin=()=>{e.tx=d.textContent.trim()||e.tx; d.textContent=e.tx; d.contentEditable="false"; editing=false; logLine("แก้ป้าย "+e.id+" → "+e.tx);};
+      d.addEventListener("blur",fin,{once:true});
+      d.addEventListener("keydown",k=>{if(k.key==="Enter"||k.key==="Escape"){k.preventDefault();d.blur();}});
+    });
+    fo.appendChild(d); gLabels.appendChild(fo); labelFO[e.id]=fo; labelEls[e.id]=d;
+    if(e.lx!=null&&e.ly!=null)e.lock=true;
+    attachLabelDrag(e,fo,d);
+  });
+  NODES.forEach(n=>{
+    const fo=el("foreignObject",{x:n.x,y:n.y,width:n.w,height:n.h});
+    const d=document.createElementNS(XH,"div"); d.className="node";
+    d.style.setProperty("--bd",`var(${COL[n.type]})`);
+    d.style.setProperty("--bgc",`var(${COL[n.type]}-t)`);
+    d.style.setProperty("--glow",`var(${COL[n.type]})`);
+    d.innerHTML=`<span class="nt">${n.t}</span><span class="ns">${n.s}</span>`;
+    fo.appendChild(d); gNodes.appendChild(fo); nodeEls[n.id]=d; nodeFO[n.id]=fo;
+    attachDrag(n,d,fo);
+  });
+  recomputeEdges();
+}
+
+/* ---- auto edge router (orthogonal elbow จากตำแหน่ง node) ---- */
+function anchors(n){return {cx:n.x+n.w/2,cy:n.y+n.h/2,L:[n.x,n.y+n.h/2],R:[n.x+n.w,n.y+n.h/2],T:[n.x+n.w/2,n.y],B:[n.x+n.w/2,n.y+n.h]};}
+function routePath(a,b){
+  const A=anchors(a),B=anchors(b),dx=B.cx-A.cx,dy=B.cy-A.cy;
+  let s,e,d,mid;
+  if(Math.abs(dx)>=Math.abs(dy)){
+    s=dx>=0?A.R:A.L; e=dx>=0?B.L:B.R; const mx=(s[0]+e[0])/2;
+    d=`M${s[0]},${s[1]} H${mx} V${e[1]} H${e[0]}`; mid=[mx,(s[1]+e[1])/2];
+  } else {
+    s=dy>=0?A.B:A.T; e=dy>=0?B.T:B.B; const my=(s[1]+e[1])/2;
+    d=`M${s[0]},${s[1]} V${my} H${e[0]} V${e[1]}`; mid=[(s[0]+e[0])/2,my];
+  }
+  return {d,mid};
+}
+function recomputeEdges(){
+  EDGES.forEach(e=>{
+    const r=routePath(byId(e.from),byId(e.to));
+    edgeEls[e.id].setAttribute("d",r.d);
+    if(e.lock){ labelFO[e.id].setAttribute("x",e.lx); labelFO[e.id].setAttribute("y",e.ly); }
+    else { labelFO[e.id].setAttribute("x",r.mid[0]-55); labelFO[e.id].setAttribute("y",r.mid[1]-12); }
+  });
+}
+
+/* ---- drag (pointer = mouse + touch) ---- */
+function vbScale(){return svg.viewBox.baseVal.width / svg.getBoundingClientRect().width;}
+function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
+function attachDrag(n,div,fo){
+  let sx,sy,ox,oy,moved;
+  div.addEventListener("dblclick",ev=>{ ev.preventDefault(); startEdit(n,div); });
+  div.addEventListener("pointerdown",ev=>{
+    if(running||editing)return;
+    ev.preventDefault(); div.setPointerCapture(ev.pointerId);
+    sx=ev.clientX; sy=ev.clientY; ox=n.x; oy=n.y; moved=0;
+    div.classList.add("dragging");
+  });
+  div.addEventListener("pointermove",ev=>{
+    if(!div.hasPointerCapture||!div.hasPointerCapture(ev.pointerId))return;
+    const sc=vbScale();
+    let nx=ox+(ev.clientX-sx)*sc, ny=oy+(ev.clientY-sy)*sc;
+    if($("#snap").checked){nx=Math.round(nx/13)*13; ny=Math.round(ny/13)*13;}
+    nx=clamp(nx,0,svg.viewBox.baseVal.width-n.w);
+    ny=clamp(ny,0,svg.viewBox.baseVal.height-n.h);
+    moved+=Math.abs(nx-n.x)+Math.abs(ny-n.y);
+    n.x=nx; n.y=ny; fo.setAttribute("x",nx); fo.setAttribute("y",ny);
+    recomputeEdges();
+  });
+  div.addEventListener("pointerup",ev=>{
+    div.classList.remove("dragging");
+    try{div.releasePointerCapture(ev.pointerId);}catch(e){}
+    if(moved<3){ selectNode(n); }   // ขยับน้อย = ถือว่าคลิก
+  });
+}
+function selectNode(n){Object.values(nodeEls).forEach(d=>d.classList.remove("sel"));nodeEls[n.id].classList.add("sel");logLine("เลือก "+n.t+" ("+n.s+")");}
+function startEdit(n,div){
+  if(running)return;
+  editing=true; div.classList.add("editing");
+  const nt=div.querySelector(".nt"), ns=div.querySelector(".ns");
+  nt.contentEditable="true"; ns.contentEditable="true"; nt.spellcheck=false; ns.spellcheck=false;
+  nt.focus();
+  const sel=window.getSelection(); sel.removeAllRanges();
+  const rg=document.createRange(); rg.selectNodeContents(nt); sel.addRange(rg);
+  function commit(){
+    if(!editing)return;
+    n.t=nt.textContent.trim()||n.t; n.s=ns.textContent.trim();
+    nt.textContent=n.t; ns.textContent=n.s;
+    nt.contentEditable="false"; ns.contentEditable="false";
+    div.classList.remove("editing"); editing=false;
+    logLine("แก้ข้อความ "+n.id+" → "+n.t);
+  }
+  function onBlur(){ setTimeout(()=>{ if(document.activeElement!==nt && document.activeElement!==ns) commit(); },0); }
+  nt.addEventListener("blur",onBlur); ns.addEventListener("blur",onBlur);
+  nt.addEventListener("keydown",e=>{ if(!editing)return; if(e.key==="Enter"){e.preventDefault(); ns.focus();} else if(e.key==="Escape"){e.preventDefault(); commit();} });
+  ns.addEventListener("keydown",e=>{ if(!editing)return; if(e.key==="Enter"||e.key==="Escape"){e.preventDefault(); commit();} });
+}
+function attachLabelDrag(e,fo,div){
+  let sx,sy,ox,oy,moved;
+  div.addEventListener("pointerdown",ev=>{
+    if(running||editing||div.isContentEditable)return;
+    ev.preventDefault(); ev.stopPropagation();
+    try{div.setPointerCapture(ev.pointerId);}catch(_){}
+    sx=ev.clientX; sy=ev.clientY; ox=+fo.getAttribute("x")||0; oy=+fo.getAttribute("y")||0; moved=0;
+    div.classList.add("ldrag");
+  });
+  div.addEventListener("pointermove",ev=>{
+    if(!div.hasPointerCapture||!div.hasPointerCapture(ev.pointerId))return;
+    const sc=vbScale();
+    let nx=ox+(ev.clientX-sx)*sc, ny=oy+(ev.clientY-sy)*sc;
+    if($("#snap").checked){nx=Math.round(nx/13)*13; ny=Math.round(ny/13)*13;}
+    moved+=Math.abs(nx-ox)+Math.abs(ny-oy);
+    e.lx=nx; e.ly=ny; e.lock=true;
+    fo.setAttribute("x",nx); fo.setAttribute("y",ny);
+  });
+  div.addEventListener("pointerup",ev=>{
+    div.classList.remove("ldrag");
+    try{div.releasePointerCapture(ev.pointerId);}catch(_){}
+    if(moved>3) logLine("ย้ายกล่อง text "+e.id);
+  });
+}
+
+/* ---- run engine ---- */
+let running=false,speed=1,editing=false;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms/speed));
+function flreset(){Object.values(nodeEls).forEach(d=>d.classList.remove("on","pop"));Object.values(edgeEls).forEach(p=>p.classList.remove("flow","done"));[...gTokens.childNodes].forEach(c=>c.remove());logEl.innerHTML="";}
+function lit(id){const d=nodeEls[id];d.classList.add("on","pop");setTimeout(()=>d.classList.remove("pop"),320/speed);}
+function logLine(t){const n=new Date().toLocaleTimeString("en-GB",{hour12:false});const ln=document.createElement("div");ln.className="ln";ln.textContent=n+"  "+t;logEl.appendChild(ln);logEl.scrollTop=logEl.scrollHeight;}
+function animateToken(edge){return new Promise(res=>{const path=edgeEls[edge.id],len=path.getTotalLength();const col=getComputedStyle(path).getPropertyValue("--cc").trim();const tk=el("circle",{class:"token",r:6,cx:0,cy:0,fill:col});tk.style.setProperty("--cc",col);gTokens.appendChild(tk);const dur=(1000+len*0.6)/speed;let st=null;function fr(ts){if(!st)st=ts;let t=(ts-st)/dur;if(t>1)t=1;const e=t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;const pt=path.getPointAtLength(e*len);tk.setAttribute("cx",pt.x);tk.setAttribute("cy",pt.y);if(t<1)requestAnimationFrame(fr);else{tk.remove();res();}}requestAnimationFrame(fr);});}
+async function runEdge(e){edgeEls[e.id].classList.add("flow");await animateToken(e);edgeEls[e.id].classList.replace("flow","done");lit(e.to);logLine(`${e.from} → ${e.to} : ${e.tx}`);}
+async function run(){if(running)return;running=true;$("#run").disabled=true;flreset();const ids=SCEN.all;lit(START.all);logLine("เริ่ม simulation");await sleep(600);for(const e of EDGES){if(!ids.includes(e.id))continue;await runEdge(e);await sleep(280);}logLine("✓ จบ");running=false;$("#run").disabled=false;}
+
+/* ---- export ---- */
+function esc(s){return (s||'').replace(/"/g,'\\"');}
+function exportNodes(){
+  const ns='const NODES=[\n'+NODES.map(n=>`  {id:"${n.id}",x:${Math.round(n.x)},y:${Math.round(n.y)},w:${n.w},h:${n.h},type:"${n.type}",t:"${esc(n.t)}",s:"${esc(n.s)}"},`).join('\n')+'\n];';
+  const es='const EDGES=[\n'+EDGES.map(e=>{const lp=e.lock?`,lx:${Math.round(e.lx)},ly:${Math.round(e.ly)}`:'';return `  {id:"${e.id}",from:"${e.from}",to:"${e.to}",mode:"${e.mode}",tx:"${esc(e.tx)}"${lp}},`;}).join('\n')+'\n];';
+  const out=ns+'\n\n'+es;
+  $("#out").value=out;
+  if(navigator.clipboard){navigator.clipboard.writeText(out).then(()=>logLine("คัดลอก NODES+EDGES แล้ว ✓")).catch(()=>{});}
+}
+function escXML(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function exportSVG(){
+  const vb=svg.viewBox.baseVal, sc=vbScale();
+  const cs=getComputedStyle(document.documentElement), cvar=n=>cs.getPropertyValue(n).trim();
+  const line=cvar('--line')||'#e7e5e4', mut=cvar('--mut')||'#5b6783', tx=cvar('--tx')||'#1c2433';
+  let s=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${vb.width} ${vb.height}" width="${vb.width}" height="${vb.height}" font-family="JetBrains Mono, ui-monospace, monospace">`;
+  s+=`<defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="${mut}"/></marker></defs>`;
+  s+=`<rect x="0" y="0" width="${vb.width}" height="${vb.height}" fill="#ffffff"/>`;
+  // edges
+  EDGES.forEach(e=>{
+    const col=cvar('--'+byId(e.to).type)||mut, d=edgeEls[e.id].getAttribute('d');
+    const dash=e.mode==='manual'?' stroke-dasharray="8 7"':'';
+    s+=`<path d="${d}" fill="none" stroke="${col}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)"${dash} opacity="0.85"/>`;
+  });
+  // edge labels
+  EDGES.forEach(e=>{
+    const fo=labelFO[e.id], x=+fo.getAttribute('x')||0, y=+fo.getAttribute('y')||0;
+    const r=labelEls[e.id].getBoundingClientRect(), w=Math.max(20,r.width*sc), h=Math.max(14,r.height*sc);
+    s+=`<g transform="translate(${x},${y})"><rect rx="7" ry="7" width="${w.toFixed(1)}" height="${h.toFixed(1)}" fill="#ffffff" stroke="${line}"/><text x="7" y="${(h/2).toFixed(1)}" dominant-baseline="middle" font-size="10" fill="#374151">${escXML(e.tx)}</text></g>`;
+  });
+  // nodes
+  NODES.forEach(n=>{
+    const bd=cvar('--'+n.type)||mut, bg=cvar('--'+n.type+'-t')||'#f1f4f9', cx=n.x+n.w/2;
+    s+=`<g><rect x="${n.x}" y="${n.y}" rx="12" ry="12" width="${n.w}" height="${n.h}" fill="${bg}" stroke="${bd}" stroke-width="1.6"/>`;
+    s+=`<text x="${cx}" y="${(n.y+n.h/2-2).toFixed(1)}" text-anchor="middle" font-size="13" font-weight="700" fill="${tx}">${escXML(n.t)}</text>`;
+    s+=`<text x="${cx}" y="${(n.y+n.h/2+13).toFixed(1)}" text-anchor="middle" font-size="9.5" fill="${mut}">${escXML(n.s)}</text></g>`;
+  });
+  s+='</svg>';
+  $("#out").value=s;                                   // โชว์โค้ดเป็น fallback
+  try{
+    const blob=new Blob([s],{type:'image/svg+xml;charset=utf-8'}), url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download='flow-diagram.svg';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1500);
+    logLine("ดาวน์โหลด flow-diagram.svg ✓");
+  }catch(err){ logLine("ดาวน์โหลดไม่ได้ — คัดลอกโค้ด SVG จากกล่องขวาแทน"); }
+}
+
+$("#run").addEventListener("click",run);
+$("#reset").addEventListener("click",()=>{if(running)return;flreset();logLine("reset run");});
+$("#speed").addEventListener("input",e=>speed=parseFloat(e.target.value));
+$("#export").addEventListener("click",exportNodes);
+$("#svgexport").addEventListener("click",exportSVG);
+window.addEventListener("resize",recomputeEdges);
+render();
+</script>
+</body>
+</html>
