@@ -32,13 +32,22 @@ setup('authenticate', async ({ page }) => {
     const appeared = await otpField.waitFor({ state: 'visible', timeout: 10_000 }).then(() => true).catch(() => false);
 
     if (appeared) {
-      await otpField.fill(totp.generate());
-      await page.click('[type="submit"]');
+      const code = totp.generate();
+      console.log(`[auth] OTP generated: ${code} at ${new Date().toISOString()}`);
+      await otpField.fill(code);
+      // Press Enter on the OTP field to submit — more reliable than button click
+      await otpField.press('Enter');
+      console.log(`[auth] OTP submitted via Enter, waiting for redirect...`);
+      // Wait for NS to redirect away from the 2FA challenge page (SB can be slow)
+      await page.waitForURL(url => !url.includes('loginchallenge'), { timeout: 60_000 }).catch(() => {
+        console.log('[auth] waitForURL timed out — still on loginchallenge after 60s');
+      });
     }
   }
 
-  await page.waitForLoadState('networkidle');
-  await expect(page).not.toHaveURL(/login/i, { timeout: 30_000 });
+  // Let page settle without blocking on full networkidle (NS home has background XHRs)
+  await page.waitForLoadState('domcontentloaded', { timeout: 20_000 }).catch(() => {});
+  await expect(page).not.toHaveURL(/login/i, { timeout: 10_000 });
 
   await page.context().storageState({ path: STATE });
 });
