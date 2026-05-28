@@ -48,8 +48,8 @@ npm run guide          # Phase B: capture screenshots + build HTML (0 LLM tokens
 npm run guide:capture  # screenshot only
 npm run guide:build    # HTML build only
 
-# CI equivalent
-npm run ci             # lint + Jest + local validate (no secrets needed)
+# CI equivalent (inner-loop only — validate runs in outer-loop with TBA auth)
+npm run ci             # lint + Jest (no secrets needed)
 ```
 
 ## First-time setup
