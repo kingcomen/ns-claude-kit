@@ -5,7 +5,8 @@ on:
     branches: [main, develop]
 
 # ─── INNER LOOP ───────────────────────────────────────────────────────────────
-# Lint + Jest + local SDF validate. No secrets required.
+# Lint + Jest. No secrets required.
+# SDF validate runs in outer-loop (requires account auth via TBA).
 jobs:
   inner-loop:
     runs-on: ubuntu-latest
@@ -17,23 +18,13 @@ jobs:
           node-version: 20
           cache: npm
 
-      # SuiteCloud SDK is a Java jar — JDK required for project:validate
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
-
       - run: npm ci
-      - run: npm install -g --acceptSuiteCloudSDKLicense @oracle/suitecloud-cli
 
       - name: Lint
         run: npm run lint
 
       - name: Unit tests
         run: npm run test:cov
-
-      - name: SDF local validate
-        run: suitecloud project:validate
 
 # ─── OUTER LOOP ───────────────────────────────────────────────────────────────
 # Deploy to CI SB (TBA) → Playwright E2E → upload report.
