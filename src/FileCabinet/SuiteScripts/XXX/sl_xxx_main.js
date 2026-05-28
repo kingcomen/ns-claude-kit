@@ -11,15 +11,15 @@
  */
 define(['N/file', 'N/log', './lib_xxx_service'], function (file, log, service) {
 
-  var HTML_PATH = '/SuiteScripts/Teibto/XXX/sl_xxx_main.html';
+  const HTML_PATH = '/SuiteScripts/Teibto/XXX/sl_xxx_main.html';
 
   function onRequest(context) {
-    var timer = service.makeTimer('onRequest');
+    const timer = service.makeTimer('onRequest');
     try {
       if (context.request.method === 'GET') {
         context.response.write(file.load({ id: HTML_PATH }).getContents());
       } else {
-        var result = service.handlePost(context.request);
+        const result = service.handlePost(context.request);
         context.response.setHeader({ name: 'Content-Type', value: 'application/json' });
         context.response.write(JSON.stringify(result));
       }
