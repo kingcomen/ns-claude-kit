@@ -12,7 +12,7 @@ define(['N/search', 'N/log'], function (search, log) {
 
   // PerfTimer — include in every script per profiling standard.
   function makeTimer(label) {
-    var start = Date.now();
+    const start = Date.now();
     return {
       log: function () { log.debug({ title: label + ' ms', details: Date.now() - start }); },
     };
@@ -24,7 +24,7 @@ define(['N/search', 'N/log'], function (search, log) {
   }
 
   function handlePost(request) {
-    var body = JSON.parse(request.body);
+    const body = JSON.parse(request.body);
     validatePost(body);
     // TODO: implement business logic — no silent fallbacks
     return { success: true, id: body.id };
