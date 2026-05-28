@@ -4,5 +4,8 @@
  */
 module.exports = {
   defaultProjectFolder: 'src',
-  commands: {},
+  commands: {
+    'project:validate': { authid: 'teibto-sb2' },
+    'project:deploy':   { authid: 'teibto-sb2' },
+  },
 };
