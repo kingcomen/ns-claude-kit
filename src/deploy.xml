@@ -1,10 +1,10 @@
 <deploy>
     <objects>
-        <path>~/Objects/customscript_xxx_sl.xml</path>
+        <path>~/Objects/customscript_so_sl.xml</path>
     </objects>
     <files>
-        <path>~/FileCabinet/SuiteScripts/XXX/sl_xxx_main.js</path>
-        <path>~/FileCabinet/SuiteScripts/XXX/sl_xxx_main.html</path>
-        <path>~/FileCabinet/SuiteScripts/XXX/lib_xxx_service.js</path>
+        <path>~/FileCabinet/SuiteScripts/Teibto/SO/sl_so_main.js</path>
+        <path>~/FileCabinet/SuiteScripts/Teibto/SO/sl_so_main.html</path>
+        <path>~/FileCabinet/SuiteScripts/Teibto/SO/lib_so_service.js</path>
     </files>
 </deploy>

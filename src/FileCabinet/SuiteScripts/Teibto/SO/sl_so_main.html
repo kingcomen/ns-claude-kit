@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Teibto · Create Sales Order</title>
+  <link rel="stylesheet" href="__TBT_DS_CSS__">
+  <script type="module" src="__TBT_DS_JS__"></script>
+</head>
+<body style="color-scheme: light; --tbt-bg-page: #FFFFFF; --tbt-bg-card: #FFFFFF; --tbt-bg-hover: #F0F2FF; --tbt-bg-active: #E2E6FF; --tbt-border: #E2E8F0; --tbt-border-strong: #CBD5E1; --tbt-text-primary: #0F172A; --tbt-text-secondary: #64748B; --tbt-text-muted: #94A3B8;">
+  <tbt-app-shell>
+    <tbt-sidebar slot="sidebar" collapsible>
+      <tbt-sidebar-item icon="chart-pie"     label="Sales Dashboard" href="#"></tbt-sidebar-item>
+      <tbt-sidebar-item icon="users"         label="Customers"       href="#"></tbt-sidebar-item>
+      <tbt-sidebar-item icon="file-text"     label="Quotations"      href="#"></tbt-sidebar-item>
+      <tbt-sidebar-item icon="shopping-cart" label="Sales Orders"    active></tbt-sidebar-item>
+      <tbt-sidebar-item icon="chart-bar"     label="Reports"         href="#"></tbt-sidebar-item>
+    </tbt-sidebar>
+
+    <main slot="content">
+
+      <tbt-section title="ลูกค้า">
+        <tbt-field-grid columns="2">
+          <tbt-search id="customer-search" placeholder="ค้นหาลูกค้า (ชื่อหรือรหัส)" debounce="300"></tbt-search>
+          <tbt-field id="customer-selected" label="ลูกค้าที่เลือก" value="—"></tbt-field>
+        </tbt-field-grid>
+        <tbt-dropdown id="customer-pick" label="ผลการค้นหา" hidden></tbt-dropdown>
+      </tbt-section>
+
+      <tbt-section title="ข้อมูลเอกสาร">
+        <tbt-field-grid columns="2">
+          <tbt-datepicker id="trandate" label="วันที่"></tbt-datepicker>
+          <tbt-input      id="memo"     label="หมายเหตุ"></tbt-input>
+        </tbt-field-grid>
+      </tbt-section>
+
+      <tbt-section title="รายการสินค้า">
+        <div slot="actions">
+          <tbt-button id="btn-add-line" variant="primary" icon="plus">เพิ่มรายการ</tbt-button>
+        </div>
+        <tbt-table id="lines-table"></tbt-table>
+      </tbt-section>
+
+      <tbt-alert id="form-msg" type="info" hidden></tbt-alert>
+
+      <tbt-section>
+        <div slot="actions">
+          <tbt-button id="btn-cancel" variant="secondary">ยกเลิก</tbt-button>
+          <tbt-button id="btn-save"   variant="primary" icon="device-floppy">สร้างใบสั่งขาย</tbt-button>
+        </div>
+      </tbt-section>
+
+    </main>
+  </tbt-app-shell>
+
+  <tbt-modal id="line-modal" title="เพิ่มรายการสินค้า">
+    <tbt-field-grid columns="2">
+      <tbt-search id="item-search" placeholder="ค้นหาสินค้า" debounce="300"></tbt-search>
+      <tbt-field  id="item-selected" label="สินค้าที่เลือก" value="—"></tbt-field>
+    </tbt-field-grid>
+    <tbt-dropdown id="item-pick" label="ผลการค้นหา" hidden></tbt-dropdown>
+    <tbt-field-grid columns="2">
+      <tbt-input id="line-qty"  label="จำนวน"      type="number" value="1"></tbt-input>
+      <tbt-input id="line-rate" label="ราคาต่อหน่วย" type="number" placeholder="(ใช้ค่า default จากสินค้า)"></tbt-input>
+    </tbt-field-grid>
+    <tbt-input id="line-desc" label="คำอธิบาย (optional)"></tbt-input>
+    <div slot="footer">
+      <tbt-button id="modal-cancel" variant="secondary">ยกเลิก</tbt-button>
+      <tbt-button id="modal-add"    variant="primary">เพิ่ม</tbt-button>
+    </div>
+  </tbt-modal>
+
+  <script type="module">
+    const USER = "__USER_CTX__";
+    const SUITELET_URL = window.location.pathname + window.location.search;
+
+    const state = {
+      customer: null,
+      lines:    [],
+      tempItem: null,
+    };
+
+    document.getElementById('trandate').value = new Date().toISOString().slice(0, 10);
+
+    function fmt(n) {
+      return Number(n || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 });
+    }
+
+    async function post(payload) {
+      const r = await fetch(SUITELET_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!r.ok) throw new Error('POST failed: ' + r.status);
+      return r.json();
+    }
+
+    function showMsg(type, text) {
+      const a = document.getElementById('form-msg');
+      a.setAttribute('type', type);
+      a.textContent = text;
+      a.hidden = false;
+    }
+
+    // ─── Customer typeahead ───────────────────────────────────────────────────
+    const customerSearch = document.getElementById('customer-search');
+    const customerPick   = document.getElementById('customer-pick');
+    const customerLabel  = document.getElementById('customer-selected');
+
+    customerSearch.addEventListener('tbt-search', async (e) => {
+      const q = e.detail.value || '';
+      if (q.length < 2) { customerPick.hidden = true; return; }
+      try {
+        const rows = await post({ action: 'search_customer', q });
+        customerPick.options = rows.map(r => ({
+          value: String(r.id),
+          label: (r.entityid || '') + (r.companyname ? ' — ' + r.companyname : ''),
+        }));
+        customerPick.hidden = false;
+      } catch (err) {
+        showMsg('error', 'ค้นหาลูกค้าไม่สำเร็จ: ' + err.message);
+      }
+    });
+
+    customerPick.addEventListener('tbt-change', async (e) => {
+      const id = e.detail.value;
+      if (!id) return;
+      const opt = (customerPick.options || []).find(o => o.value === id);
+      state.customer = { id, label: opt ? opt.label : id };
+      customerLabel.value = state.customer.label;
+      // Pre-fetch cascade defaults so a save failure surfaces missing fields early
+      try { await post({ action: 'lookup_customer', id }); }
+      catch (err) { showMsg('error', 'ดึงข้อมูลลูกค้าไม่สำเร็จ: ' + err.message); }
+    });
+
+    // ─── Lines table ──────────────────────────────────────────────────────────
+    const linesTable = document.getElementById('lines-table');
+    linesTable.columns = [
+      { key: 'item',     label: 'สินค้า' },
+      { key: 'quantity', label: 'จำนวน',       align: 'right' },
+      { key: 'rate',     label: 'ราคา',         align: 'right' },
+      { key: 'amount',   label: 'รวม',          align: 'right' },
+    ];
+    linesTable.rows = [];
+
+    function refreshLines() {
+      linesTable.rows = state.lines.map(l => ({
+        item:     l.itemLabel,
+        quantity: l.quantity,
+        rate:     l.rate ? fmt(l.rate) : '(default)',
+        amount:   l.rate ? fmt(Number(l.rate) * Number(l.quantity)) : '—',
+      }));
+    }
+
+    // ─── Add-Line modal ───────────────────────────────────────────────────────
+    const lineModal   = document.getElementById('line-modal');
+    const itemSearch  = document.getElementById('item-search');
+    const itemPick    = document.getElementById('item-pick');
+    const itemLabel   = document.getElementById('item-selected');
+    const lineQty     = document.getElementById('line-qty');
+    const lineRate    = document.getElementById('line-rate');
+    const lineDesc    = document.getElementById('line-desc');
+
+    document.getElementById('btn-add-line').addEventListener('click', () => {
+      state.tempItem = null;
+      itemSearch.value = '';
+      itemPick.hidden = true;
+      itemLabel.value = '—';
+      lineQty.value = '1';
+      lineRate.value = '';
+      lineDesc.value = '';
+      lineModal.open = true;
+    });
+
+    document.getElementById('modal-cancel').addEventListener('click', () => { lineModal.open = false; });
+
+    itemSearch.addEventListener('tbt-search', async (e) => {
+      const q = e.detail.value || '';
+      if (q.length < 2) { itemPick.hidden = true; return; }
+      try {
+        const rows = await post({ action: 'search_item', q });
+        itemPick.options = rows.map(r => ({
+          value: String(r.id),
+          label: (r.itemid || '') + (r.displayname ? ' — ' + r.displayname : ''),
+        }));
+        itemPick.hidden = false;
+      } catch (err) {
+        showMsg('error', 'ค้นหาสินค้าไม่สำเร็จ: ' + err.message);
+      }
+    });
+
+    itemPick.addEventListener('tbt-change', (e) => {
+      const id = e.detail.value;
+      if (!id) return;
+      const opt = (itemPick.options || []).find(o => o.value === id);
+      state.tempItem = { id, label: opt ? opt.label : id };
+      itemLabel.value = state.tempItem.label;
+    });
+
+    document.getElementById('modal-add').addEventListener('click', () => {
+      if (!state.tempItem) { showMsg('error', 'กรุณาเลือกสินค้า'); return; }
+      const qty = Number(lineQty.value);
+      if (!qty || qty <= 0) { showMsg('error', 'จำนวนต้องมากกว่า 0'); return; }
+      state.lines.push({
+        item:        state.tempItem.id,
+        itemLabel:   state.tempItem.label,
+        quantity:    qty,
+        rate:        lineRate.value || null,
+        description: lineDesc.value || '',
+      });
+      refreshLines();
+      lineModal.open = false;
+      showMsg('success', 'เพิ่มรายการแล้ว — รวม ' + state.lines.length + ' รายการ');
+    });
+
+    // ─── Save ─────────────────────────────────────────────────────────────────
+    document.getElementById('btn-save').addEventListener('click', async () => {
+      if (!state.customer) { showMsg('error', 'กรุณาเลือกลูกค้า'); return; }
+      if (state.lines.length === 0) { showMsg('error', 'กรุณาเพิ่มรายการสินค้าอย่างน้อย 1 รายการ'); return; }
+
+      const btn = document.getElementById('btn-save');
+      btn.disabled = true;
+      showMsg('info', 'กำลังบันทึก…');
+
+      try {
+        const result = await post({
+          action: 'create_so',
+          header: {
+            entity:   state.customer.id,
+            trandate: document.getElementById('trandate').value,
+            memo:     document.getElementById('memo').value || '',
+          },
+          lines: state.lines.map(l => ({
+            item:        l.item,
+            quantity:    l.quantity,
+            rate:        l.rate,
+            description: l.description,
+          })),
+        });
+        showMsg('success', 'สร้างใบสั่งขายสำเร็จ — เลขที่ ' + (result.tranid || result.id));
+        state.lines = [];
+        refreshLines();
+      } catch (err) {
+        showMsg('error', 'บันทึกไม่สำเร็จ: ' + err.message);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    document.getElementById('btn-cancel').addEventListener('click', () => {
+      window.location.reload();
+    });
+  </script>
+</body>
+</html>
