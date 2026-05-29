@@ -1,20 +1,19 @@
-<script scriptid="customscript_xxx_sl">
-    <description>XXX Suitelet — replace with real description</description>
+<script scriptid="customscript_sdb_sl">
+    <description>SDB Sales Dashboard Suitelet</description>
     <isinactive>F</isinactive>
-    <name>XXX Suitelet</name>
+    <name>SDB Sales Dashboard</name>
     <notifyadmins>F</notifyadmins>
     <notifyowner>T</notifyowner>
-    <scriptfile>[/SuiteScripts/XXX/sl_xxx_main.js]</scriptfile>
+    <scriptfile>[/SuiteScripts/Teibto/SDB/sl_sdb_main.js]</scriptfile>
     <scripttype>SUITELET</scripttype>
-    <defaultfunction>onRequest</defaultfunction>
     <scriptdeployments>
-        <scriptdeployment scriptid="customdeploy_xxx_sl">
+        <scriptdeployment scriptid="customdeploy_sdb_sl">
             <deploynumber>1</deploynumber>
             <isdeployed>T</isdeployed>
             <ispublic>F</ispublic>
             <loglevel>DEBUG</loglevel>
             <status>RELEASED</status>
-            <title>XXX Suitelet</title>
+            <title>SDB Sales Dashboard</title>
         </scriptdeployment>
     </scriptdeployments>
 </script>

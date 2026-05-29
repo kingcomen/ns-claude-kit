@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Teibto · Sales Dashboard</title>
+  <link rel="stylesheet" href="__TBT_DS_CSS__">
+  <script type="module" src="__TBT_DS_JS__"></script>
+</head>
+<body style="color-scheme: light; --tbt-bg-page: #FFFFFF; --tbt-bg-card: #FFFFFF; --tbt-bg-hover: #F0F2FF; --tbt-bg-active: #E2E6FF; --tbt-border: #E2E8F0; --tbt-border-strong: #CBD5E1; --tbt-text-primary: #0F172A; --tbt-text-secondary: #64748B; --tbt-text-muted: #94A3B8;">
+  <tbt-app-shell>
+    <tbt-sidebar slot="sidebar" collapsible>
+      <tbt-sidebar-item icon="chart-pie"     label="Sales Dashboard" active></tbt-sidebar-item>
+      <tbt-sidebar-item icon="users"         label="Customers"     href="#"></tbt-sidebar-item>
+      <tbt-sidebar-item icon="file-text"     label="Quotations"    href="#"></tbt-sidebar-item>
+      <tbt-sidebar-item icon="shopping-cart" label="Sales Orders"  href="#"></tbt-sidebar-item>
+      <tbt-sidebar-item icon="chart-bar"     label="Reports"       href="#"></tbt-sidebar-item>
+    </tbt-sidebar>
+
+    <main slot="content">
+
+      <tbt-section title="ตัวกรอง">
+        <tbt-form id="filter-form">
+          <tbt-datepicker id="date-from" label="ตั้งแต่วันที่"></tbt-datepicker>
+          <tbt-datepicker id="date-to"   label="ถึงวันที่"></tbt-datepicker>
+          <tbt-dropdown   id="rep-select" label="พนักงานขาย" hidden></tbt-dropdown>
+          <tbt-button id="btn-load" variant="primary">โหลดข้อมูล</tbt-button>
+        </tbt-form>
+      </tbt-section>
+
+      <tbt-section title="รายได้รายเดือน">
+        <tbt-alert id="msg-revenue" type="info">กรุณาเลือกช่วงวันที่แล้วกดโหลดข้อมูล</tbt-alert>
+        <tbt-table id="table-revenue" hidden></tbt-table>
+      </tbt-section>
+
+      <tbt-section title="ลูกค้ายอดสูงสุด 10 ราย">
+        <tbt-table id="table-customers" hidden></tbt-table>
+      </tbt-section>
+
+      <tbt-section title="Pipeline โอกาสขาย">
+        <tbt-table id="table-pipeline" hidden></tbt-table>
+      </tbt-section>
+
+      <tbt-section title="สินค้าขายดี 10 รายการ">
+        <tbt-table id="table-items" hidden></tbt-table>
+      </tbt-section>
+
+    </main>
+  </tbt-app-shell>
+
+  <script type="module">
+    const USER = "__USER_CTX__";
+    const SUITELET_URL = window.location.pathname + window.location.search;
+
+    if (USER.isManager) {
+      document.getElementById('rep-select').removeAttribute('hidden');
+      document.getElementById('rep-select').options = [];
+    }
+
+    const today = new Date();
+    const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    document.getElementById('date-from').value = firstOfMonth.toISOString().slice(0, 10);
+    document.getElementById('date-to').value   = today.toISOString().slice(0, 10);
+
+    function fmt(n) {
+      return Number(n || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 });
+    }
+
+    function fillTable(id, columns, rows) {
+      const table = document.getElementById(id);
+      table.columns = columns;
+      table.rows    = rows;
+      table.hidden  = false;
+    }
+
+    async function loadDashboard() {
+      const btn = document.getElementById('btn-load');
+      btn.disabled = true;
+
+      const payload = {
+        dateFrom: document.getElementById('date-from').value,
+        dateTo:   document.getElementById('date-to').value,
+        repId:    USER.isManager ? (document.getElementById('rep-select').value || null) : null,
+      };
+
+      try {
+        const res = await fetch(SUITELET_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) throw new Error('POST failed: ' + res.status);
+        const data = await res.json();
+
+        fillTable('table-revenue',
+          [
+            { key: 'month', label: 'เดือน' },
+            { key: 'total', label: 'ยอดรวม (บาท)', align: 'right' },
+          ],
+          data.revenue.map(r => ({ month: r.month, total: fmt(r.total) })));
+        document.getElementById('msg-revenue').hidden = true;
+
+        fillTable('table-customers',
+          [
+            { key: 'customer', label: 'ลูกค้า' },
+            { key: 'total',    label: 'ยอดรวม (บาท)', align: 'right' },
+          ],
+          data.topCustomers.map(r => ({ customer: r.customer, total: fmt(r.total) })));
+
+        fillTable('table-pipeline',
+          [
+            { key: 'stage', label: 'ขั้นตอน' },
+            { key: 'count', label: 'จำนวน', align: 'right' },
+            { key: 'total', label: 'มูลค่าคาดการณ์ (บาท)', align: 'right' },
+          ],
+          data.pipeline.map(r => ({ stage: r.stage, count: r.count, total: fmt(r.total) })));
+
+        fillTable('table-items',
+          [
+            { key: 'item',  label: 'สินค้า' },
+            { key: 'qty',   label: 'จำนวน', align: 'right' },
+            { key: 'total', label: 'ยอดรวม (บาท)', align: 'right' },
+          ],
+          data.topItems.map(r => ({ item: r.item, qty: r.qty, total: fmt(r.total) })));
+
+      } catch (err) {
+        const alert = document.getElementById('msg-revenue');
+        alert.setAttribute('type', 'error');
+        alert.textContent = 'โหลดข้อมูลไม่สำเร็จ: ' + err.message;
+        alert.hidden = false;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    document.getElementById('btn-load').addEventListener('click', loadDashboard);
+    loadDashboard();
+  </script>
+</body>
+</html>

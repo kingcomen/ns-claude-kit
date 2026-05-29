@@ -1,8 +1,7 @@
 /**
- * SINGLE SOURCE OF TRUTH for the user guide.
+ * SINGLE SOURCE OF TRUTH for the SDB Sales Dashboard user guide.
  *
- * Phase A (one-time, costs tokens): Claude Code + Playwright MCP explores the
- * Suitelet, finds stable selectors, and writes/edits this file.
+ * Phase A (one-time, costs tokens): authored by Claude Code from the SDB Suitelet HTML.
  * Phase B (every regenerate, 0 LLM tokens): guide.capture.mjs + build-guide.mjs
  * read this file and produce screenshots + an HTML/PDF guide.
  *
@@ -11,9 +10,9 @@
  * @author Wichit Wongta
  */
 export const meta = {
-  title: 'คู่มือการใช้งาน — XXX Suitelet',
+  title: 'คู่มือการใช้งาน — Sales Dashboard',
   version: '1.0',
-  scenario: 'item_fulfillment_happy_path', // ns-tdm scenario to seed before capture
+  scenario: null, // SDB reads existing transaction data — no TDM seed needed
 };
 
 /**
@@ -28,22 +27,58 @@ export const meta = {
 export const steps = [
   {
     id: '01-open',
-    title: 'เปิดหน้าจอ',
-    instruction: 'ไปที่เมนูแล้วเปิดหน้า XXX Suitelet ระบบจะแสดงตารางรายการ',
-    url: '/app/site/hosting/scriptlet.nl?script=customscript_xxx_sl&deploy=1',
-    target: '#xxx-grid',
+    title: 'เปิดหน้า Sales Dashboard',
+    instruction:
+      'เปิดเมนู Teibto ERP แล้วเลือก Sales Dashboard ระบบจะโหลดข้อมูล' +
+      'ของเดือนปัจจุบันอัตโนมัติ',
+    url: '/app/site/hosting/scriptlet.nl?script=3292&deploy=1',
+    target: null, // full-page overview — no highlight
   },
   {
-    id: '02-search',
-    title: 'ค้นหารายการ',
-    instruction: 'พิมพ์เลขที่เอกสารในช่องค้นหา แล้วกด Enter',
-    target: '#xxx-search',
-    before: [{ action: 'fill', selector: '#xxx-search', value: 'IF-0001' }],
+    id: '02-filter',
+    title: 'กำหนดช่วงวันที่',
+    instruction:
+      'เลือก "ตั้งแต่วันที่" และ "ถึงวันที่" ที่ต้องการวิเคราะห์' +
+      ' ค่าเริ่มต้นคือวันแรกของเดือน ถึงวันนี้',
+    target: '#filter-form',
   },
   {
-    id: '03-confirm',
-    title: 'ยืนยันรายการ',
-    instruction: 'ตรวจสอบข้อมูลแล้วกดปุ่ม "ยืนยัน" เพื่อบันทึก',
-    target: '#xxx-confirm-btn',
+    id: '03-load',
+    title: 'กดโหลดข้อมูล',
+    instruction:
+      'กดปุ่ม "โหลดข้อมูล" เพื่อดึงข้อมูลตามช่วงวันที่และพนักงานขายที่เลือก',
+    target: '#btn-load',
+  },
+  {
+    id: '04-revenue',
+    title: 'รายได้รายเดือน',
+    instruction:
+      'ตารางแสดงยอดรายได้รวมจากใบแจ้งหนี้ลูกค้า แยกตามเดือน' +
+      ' เรียงจากเดือนแรกถึงเดือนล่าสุดในช่วงที่เลือก',
+    target: '#section-revenue',
+  },
+  {
+    id: '05-customers',
+    title: 'ลูกค้ายอดสูงสุด 10 ราย',
+    instruction:
+      'ตารางแสดง 10 ลูกค้าที่มียอดซื้อสูงสุดในช่วงที่เลือก' +
+      ' เรียงจากมากไปน้อย',
+    target: '#section-customers',
+  },
+  {
+    id: '06-pipeline',
+    title: 'Pipeline โอกาสขาย',
+    instruction:
+      'ตารางแสดงจำนวนและมูลค่าคาดการณ์ของโอกาสขายแต่ละขั้นตอน' +
+      ' เรียงตามมูลค่าจากมากไปน้อย',
+    target: '#section-pipeline',
+  },
+  {
+    id: '07-items',
+    title: 'สินค้าขายดี 10 รายการ',
+    instruction:
+      'ตารางแสดง 10 สินค้าที่มียอดขายสูงสุดในช่วงที่เลือก' +
+      ' แสดงทั้งจำนวนและยอดรวม',
+    target: '#section-items',
   },
 ];
