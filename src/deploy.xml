@@ -1,6 +1,6 @@
 <deploy>
     <objects>
-        <path>~/Objects/customscript_so_sl.xml</path>
+        <path>~/Objects/customscript_so.xml</path>
     </objects>
     <files>
         <path>~/FileCabinet/SuiteScripts/Teibto/SO/sl_so_main.js</path>
