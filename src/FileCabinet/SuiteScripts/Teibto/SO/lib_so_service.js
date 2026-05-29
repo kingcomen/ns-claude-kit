@@ -1,18 +1,48 @@
 /**
- * SO — Sales Order business logic (Phase 2).
+ * SO — Sales Order business logic (Phase 3).
  * All N/* calls live here; unit tests mock them.
  *
  * Actions: loadFormData, searchCustomer, searchItem, searchSalesrep,
- *          lookupCustomer, createSalesOrder.
+ *          lookupCustomer, createSalesOrder, getRoleContext.
+ *
+ * Role gating: non-managers cannot override salesrep — it is forced to the
+ * current user's employee ID server-side so SOs are attributable.
  *
  * @NApiVersion 2.1
  * @author Wichit Wongta
  */
 define(['N/query', 'N/search', 'N/record', 'N/runtime', 'N/log'], function (query, search, record, runtime, log) {
 
+  // Internal role IDs that may override salesrep. Adjust per account.
+  // Probed from this tenant: Administrators + Sales-manager-like roles.
+  const MANAGER_ROLE_IDS = [
+    3,     // Administrator (NS default)
+    1303,  // APC Administrator
+    1306,  // MFG - Administrator
+    1308,  // BGC Administrator
+    1278,  // Demo - Sales Manager
+    1281,  // Custom Sales Manager 2
+    1311,  // Assistant Manager
+    1016,  // Business Development Manager
+  ];
+
   function makeTimer(label) {
     const start = Date.now();
     return { log: function () { log.debug({ title: label + ' ms', details: Date.now() - start }); } };
+  }
+
+  /**
+   * Returns role context for the current user so the UI can hide manager-only
+   * controls. Server still enforces in createSalesOrder — never trust client.
+   */
+  function getRoleContext() {
+    const u = runtime.getCurrentUser();
+    return {
+      employeeId: u.id,
+      name:       u.name,
+      role:       u.role,
+      isManager:  MANAGER_ROLE_IDS.indexOf(u.role) !== -1,
+    };
   }
 
   /** Defang single quotes so user input can't break out of SuiteQL literal. */
@@ -142,13 +172,25 @@ define(['N/query', 'N/search', 'N/record', 'N/runtime', 'N/log'], function (quer
       rec.setValue({ fieldId: fieldId, value: transform ? transform(value) : value });
     }
     setIf('trandate',    header.trandate,    function (v) { return new Date(v); });
+    setIf('shipdate',    header.shipdate,    function (v) { return new Date(v); });
     setIf('location',    header.location,    function (v) { return parseInt(v, 10); });
     setIf('class',       header.classid,     function (v) { return parseInt(v, 10); });
     setIf('department',  header.department,  function (v) { return parseInt(v, 10); });
     setIf('currency',    header.currency,    function (v) { return parseInt(v, 10); });
     setIf('terms',       header.terms,       function (v) { return parseInt(v, 10); });
-    setIf('salesrep',    header.salesrep,    function (v) { return parseInt(v, 10); });
     setIf('memo',        header.memo,        function (v) { return String(v); });
+    setIf('shipaddress', header.shipaddress, function (v) { return String(v); });
+
+    // Salesrep is role-gated. Managers may override; everyone else gets their
+    // own employee id (or NS sources the customer default when neither
+    // override nor logged-in employee is appropriate).
+    const ctx = getRoleContext();
+    const repValue = ctx.isManager
+      ? (header.salesrep || null)
+      : ctx.employeeId;
+    if (repValue) {
+      rec.setValue({ fieldId: 'salesrep', value: parseInt(repValue, 10) });
+    }
 
     for (let i = 0; i < lines.length; i++) {
       const ln = lines[i];
@@ -174,6 +216,8 @@ define(['N/query', 'N/search', 'N/record', 'N/runtime', 'N/log'], function (quer
   return {
     makeTimer:         makeTimer,
     escapeQ:           escapeQ,
+    MANAGER_ROLE_IDS:  MANAGER_ROLE_IDS,
+    getRoleContext:    getRoleContext,
     loadFormData:      loadFormData,
     searchCustomer:    searchCustomer,
     searchItem:        searchItem,

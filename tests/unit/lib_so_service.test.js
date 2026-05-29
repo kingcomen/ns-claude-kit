@@ -8,7 +8,10 @@ jest.mock('N/search', () => ({
   Type: { CUSTOMER: 'customer' },
   lookupFields: jest.fn(),
 }));
-jest.mock('N/runtime', () => ({ isFeatureInEffect: jest.fn() }));
+jest.mock('N/runtime', () => ({
+  isFeatureInEffect: jest.fn(),
+  getCurrentUser:    jest.fn(() => ({ id: 555, name: 'Test User', role: 999 })),
+}));
 jest.mock('N/log', () => ({ debug: jest.fn(), error: jest.fn() }));
 
 const mockRec = {
@@ -340,5 +343,91 @@ describe('createSalesOrder', () => {
     const classCall = mockRec.setValue.mock.calls.find(c => c[0].fieldId === 'class');
     expect(classCall).toBeDefined();
     expect(classCall[0].value).toBe(7);
+  });
+
+  it('sets shipdate + shipaddress when provided', () => {
+    runtime.isFeatureInEffect.mockReturnValue(false);
+    service.createSalesOrder({
+      header: { entity: 100, shipdate: '2026-06-15', shipaddress: '123 Sukhumvit' },
+      lines:  validPayload.lines,
+    });
+    const shipdateCall    = mockRec.setValue.mock.calls.find(c => c[0].fieldId === 'shipdate');
+    const shipaddressCall = mockRec.setValue.mock.calls.find(c => c[0].fieldId === 'shipaddress');
+    expect(shipdateCall).toBeDefined();
+    expect(shipdateCall[0].value).toBeInstanceOf(Date);
+    expect(shipaddressCall).toBeDefined();
+    expect(shipaddressCall[0].value).toBe('123 Sukhumvit');
+  });
+});
+
+// ─── Role gating ──────────────────────────────────────────────────────────────
+
+describe('getRoleContext', () => {
+  it('marks Administrator (role 3) as manager', () => {
+    runtime.getCurrentUser.mockReturnValueOnce({ id: 10, name: 'Admin', role: 3 });
+    expect(service.getRoleContext()).toEqual({ employeeId: 10, name: 'Admin', role: 3, isManager: true });
+  });
+
+  it('marks all probed manager roles as manager', () => {
+    [3, 1303, 1306, 1308, 1278, 1281, 1311, 1016].forEach(roleId => {
+      runtime.getCurrentUser.mockReturnValueOnce({ id: 11, name: 'Mgr', role: roleId });
+      expect(service.getRoleContext().isManager).toBe(true);
+    });
+  });
+
+  it('marks regular salesperson role as NOT manager', () => {
+    runtime.getCurrentUser.mockReturnValueOnce({ id: 22, name: 'Sales', role: 1000 });
+    expect(service.getRoleContext().isManager).toBe(false);
+  });
+});
+
+describe('createSalesOrder salesrep gating', () => {
+  const lines = [{ item: 99, quantity: 1 }];
+
+  it('manager: respects header.salesrep override', () => {
+    runtime.isFeatureInEffect.mockReturnValue(false);
+    runtime.getCurrentUser.mockReturnValueOnce({ id: 555, name: 'Mgr', role: 3 });
+    service.createSalesOrder({
+      header: { entity: 100, salesrep: 17 },
+      lines:  lines,
+    });
+    const repCall = mockRec.setValue.mock.calls.find(c => c[0].fieldId === 'salesrep');
+    expect(repCall).toBeDefined();
+    expect(repCall[0].value).toBe(17);
+  });
+
+  it('non-manager: ignores header.salesrep and forces user.id', () => {
+    runtime.isFeatureInEffect.mockReturnValue(false);
+    runtime.getCurrentUser.mockReturnValueOnce({ id: 555, name: 'Sales', role: 1000 });
+    service.createSalesOrder({
+      header: { entity: 100, salesrep: 17 },  // attempted override — must be ignored
+      lines:  lines,
+    });
+    const repCall = mockRec.setValue.mock.calls.find(c => c[0].fieldId === 'salesrep');
+    expect(repCall).toBeDefined();
+    expect(repCall[0].value).toBe(555);  // user's own id, not 17
+  });
+
+  it('non-manager + no header.salesrep: still sets to user.id', () => {
+    runtime.isFeatureInEffect.mockReturnValue(false);
+    runtime.getCurrentUser.mockReturnValueOnce({ id: 555, name: 'Sales', role: 1000 });
+    service.createSalesOrder({
+      header: { entity: 100 },
+      lines:  lines,
+    });
+    const repCall = mockRec.setValue.mock.calls.find(c => c[0].fieldId === 'salesrep');
+    expect(repCall).toBeDefined();
+    expect(repCall[0].value).toBe(555);
+  });
+
+  it('manager + no header.salesrep: does NOT set salesrep (lets NS source default)', () => {
+    runtime.isFeatureInEffect.mockReturnValue(false);
+    runtime.getCurrentUser.mockReturnValueOnce({ id: 555, name: 'Mgr', role: 3 });
+    service.createSalesOrder({
+      header: { entity: 100 },
+      lines:  lines,
+    });
+    const repCall = mockRec.setValue.mock.calls.find(c => c[0].fieldId === 'salesrep');
+    expect(repCall).toBeUndefined();
   });
 });

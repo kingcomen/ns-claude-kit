@@ -42,10 +42,16 @@
           <tbt-dropdown id="terms"      label="เครดิตเทอม"></tbt-dropdown>
           <tbt-dropdown id="salesrep-pick" label="พนักงานขาย" hidden></tbt-dropdown>
         </tbt-field-grid>
+        <tbt-search id="salesrep-search" placeholder="ค้นหาพนักงานขาย" debounce="300" style="display:none"></tbt-search>
+        <tbt-field  id="salesrep-locked" label="พนักงานขาย (ล็อกตามผู้ใช้ปัจจุบัน)" value="—" style="display:none"></tbt-field>
+        <tbt-input id="memo" label="หมายเหตุ"></tbt-input>
+      </tbt-section>
+
+      <tbt-section title="การจัดส่ง">
         <tbt-field-grid columns="2">
-          <tbt-search id="salesrep-search" placeholder="ค้นหาพนักงานขาย" debounce="300"></tbt-search>
-          <tbt-input  id="memo"            label="หมายเหตุ"></tbt-input>
+          <tbt-datepicker id="shipdate" label="วันที่จัดส่ง"></tbt-datepicker>
         </tbt-field-grid>
+        <tbt-input id="shipaddress" label="ที่อยู่จัดส่ง (override)" placeholder="ปล่อยว่างเพื่อใช้ที่อยู่ default ของลูกค้า"></tbt-input>
       </tbt-section>
 
       <tbt-section title="รายการสินค้า">
@@ -96,6 +102,16 @@
     };
 
     document.getElementById('trandate').value = new Date().toISOString().slice(0, 10);
+
+    // ─── Role gating: salesrep widgets ────────────────────────────────────────
+    if (USER.isManager) {
+      document.getElementById('salesrep-search').style.display = '';
+    } else {
+      const locked = document.getElementById('salesrep-locked');
+      locked.value = USER.name || ('Employee #' + USER.employeeId);
+      locked.style.display = '';
+      state.salesrep = { id: String(USER.employeeId), label: USER.name || '' };
+    }
 
     function fmt(n) {
       return Number(n || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 });
@@ -177,7 +193,7 @@
         if (pickId(c.subsidiary)) document.getElementById('subsidiary').value = String(pickId(c.subsidiary));
         if (pickId(c.currency))   document.getElementById('currency').value   = String(pickId(c.currency));
         if (pickId(c.terms))      document.getElementById('terms').value      = String(pickId(c.terms));
-        if (pickId(c.salesrep)) {
+        if (USER.isManager && pickId(c.salesrep)) {
           state.salesrep = { id: String(pickId(c.salesrep)), label: c.salesrep[0].text || '' };
           const repPick = document.getElementById('salesrep-pick');
           repPick.options = [{ value: state.salesrep.id, label: state.salesrep.label }];
@@ -308,16 +324,18 @@
         const result = await post({
           action: 'create_so',
           header: {
-            entity:     state.customer.id,
-            trandate:   val('trandate'),
-            subsidiary: val('subsidiary'),
-            location:   val('location'),
-            classid:    val('classid'),
-            department: val('department'),
-            currency:   val('currency'),
-            terms:      val('terms'),
-            salesrep:   state.salesrep ? state.salesrep.id : null,
-            memo:       document.getElementById('memo').value || '',
+            entity:      state.customer.id,
+            trandate:    val('trandate'),
+            shipdate:    val('shipdate'),
+            subsidiary:  val('subsidiary'),
+            location:    val('location'),
+            classid:     val('classid'),
+            department:  val('department'),
+            currency:    val('currency'),
+            terms:       val('terms'),
+            salesrep:    state.salesrep ? state.salesrep.id : null,
+            shipaddress: val('shipaddress'),
+            memo:        document.getElementById('memo').value || '',
           },
           lines: state.lines.map(l => ({
             item:        l.item,
