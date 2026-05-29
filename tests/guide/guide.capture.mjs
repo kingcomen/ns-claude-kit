@@ -81,7 +81,12 @@ async function teardownIfConfigured(runId) {
   try {
     for (let i = 0; i < steps.length; i++) {
       const s = steps[i];
-      if (s.url) { await page.goto(s.url); await page.waitForLoadState('networkidle'); }
+      if (s.url) {
+        await page.goto(s.url);
+        await page.waitForLoadState('load');
+        // Let SPA / web-component JS settle without waiting for persistent WS connections
+        await page.waitForLoadState('networkidle', { timeout: 8_000 }).catch(() => {});
+      }
       for (const b of s.before || []) {
         if (b.action === 'fill') await page.fill(b.selector, b.value);
         if (b.action === 'click') await page.click(b.selector);

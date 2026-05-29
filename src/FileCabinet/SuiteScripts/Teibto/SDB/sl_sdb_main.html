@@ -4,64 +4,45 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Teibto · Sales Dashboard</title>
-  <link rel="stylesheet" href="/sc/SuiteScripts/Teibto/ds/v1.26.2/tbt-theme.css">
-  <script type="module" src="/sc/SuiteScripts/Teibto/ds/v1.26.2/index.js"></script>
+  <link rel="stylesheet" href="__TBT_DS_CSS__">
+  <script type="module" src="__TBT_DS_JS__"></script>
 </head>
-<body>
+<body style="color-scheme: light; --tbt-bg-page: #FFFFFF; --tbt-bg-card: #FFFFFF; --tbt-bg-hover: #F0F2FF; --tbt-bg-active: #E2E6FF; --tbt-border: #E2E8F0; --tbt-border-strong: #CBD5E1; --tbt-text-primary: #0F172A; --tbt-text-secondary: #64748B; --tbt-text-muted: #94A3B8;">
   <tbt-app-shell>
-    <tbt-menubar slot="menubar" title="Teibto ERP"></tbt-menubar>
+    <tbt-sidebar slot="sidebar" collapsible>
+      <tbt-sidebar-item icon="chart-pie"     label="Sales Dashboard" active></tbt-sidebar-item>
+      <tbt-sidebar-item icon="users"         label="Customers"     href="#"></tbt-sidebar-item>
+      <tbt-sidebar-item icon="file-text"     label="Quotations"    href="#"></tbt-sidebar-item>
+      <tbt-sidebar-item icon="shopping-cart" label="Sales Orders"  href="#"></tbt-sidebar-item>
+      <tbt-sidebar-item icon="chart-bar"     label="Reports"       href="#"></tbt-sidebar-item>
+    </tbt-sidebar>
 
     <main slot="content">
 
-      <!-- Filter bar -->
       <tbt-section title="ตัวกรอง">
         <tbt-form id="filter-form">
-          <tbt-input id="date-from" label="ตั้งแต่วันที่" type="date"></tbt-input>
-          <tbt-input id="date-to"   label="ถึงวันที่"     type="date"></tbt-input>
-          <tbt-select id="rep-select" label="พนักงานขาย" hidden></tbt-select>
+          <tbt-datepicker id="date-from" label="ตั้งแต่วันที่"></tbt-datepicker>
+          <tbt-datepicker id="date-to"   label="ถึงวันที่"></tbt-datepicker>
+          <tbt-dropdown   id="rep-select" label="พนักงานขาย" hidden></tbt-dropdown>
           <tbt-button id="btn-load" variant="primary">โหลดข้อมูล</tbt-button>
         </tbt-form>
       </tbt-section>
 
-      <!-- Revenue by month -->
-      <tbt-section id="section-revenue" title="รายได้รายเดือน">
+      <tbt-section title="รายได้รายเดือน">
         <tbt-alert id="msg-revenue" type="info">กรุณาเลือกช่วงวันที่แล้วกดโหลดข้อมูล</tbt-alert>
-        <div id="table-revenue" hidden>
-          <table>
-            <thead><tr><th>เดือน</th><th>ยอดรวม (บาท)</th></tr></thead>
-            <tbody id="body-revenue"></tbody>
-          </table>
-        </div>
+        <tbt-table id="table-revenue" hidden></tbt-table>
       </tbt-section>
 
-      <!-- Top customers -->
-      <tbt-section id="section-customers" title="ลูกค้ายอดสูงสุด 10 ราย">
-        <div id="table-customers" hidden>
-          <table>
-            <thead><tr><th>ลูกค้า</th><th>ยอดรวม (บาท)</th></tr></thead>
-            <tbody id="body-customers"></tbody>
-          </table>
-        </div>
+      <tbt-section title="ลูกค้ายอดสูงสุด 10 ราย">
+        <tbt-table id="table-customers" hidden></tbt-table>
       </tbt-section>
 
-      <!-- Pipeline by stage -->
-      <tbt-section id="section-pipeline" title="Pipeline โอกาสขาย">
-        <div id="table-pipeline" hidden>
-          <table>
-            <thead><tr><th>ขั้นตอน</th><th>จำนวน</th><th>มูลค่าคาดการณ์ (บาท)</th></tr></thead>
-            <tbody id="body-pipeline"></tbody>
-          </table>
-        </div>
+      <tbt-section title="Pipeline โอกาสขาย">
+        <tbt-table id="table-pipeline" hidden></tbt-table>
       </tbt-section>
 
-      <!-- Top items -->
-      <tbt-section id="section-items" title="สินค้าขายดี 10 รายการ">
-        <div id="table-items" hidden>
-          <table>
-            <thead><tr><th>สินค้า</th><th>จำนวน</th><th>ยอดรวม (บาท)</th></tr></thead>
-            <tbody id="body-items"></tbody>
-          </table>
-        </div>
+      <tbt-section title="สินค้าขายดี 10 รายการ">
+        <tbt-table id="table-items" hidden></tbt-table>
       </tbt-section>
 
     </main>
@@ -71,26 +52,25 @@
     const USER = "__USER_CTX__";
     const SUITELET_URL = window.location.pathname + window.location.search;
 
-    // Show rep selector only for managers
     if (USER.isManager) {
       document.getElementById('rep-select').removeAttribute('hidden');
+      document.getElementById('rep-select').options = [];
     }
 
-    // Default date range: first day of current month → today
     const today = new Date();
     const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
     document.getElementById('date-from').value = firstOfMonth.toISOString().slice(0, 10);
     document.getElementById('date-to').value   = today.toISOString().slice(0, 10);
 
     function fmt(n) {
-      return Number(n).toLocaleString('th-TH', { minimumFractionDigits: 2 });
+      return Number(n || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 });
     }
 
-    function fillTable(tbodyId, rows, cols) {
-      const tbody = document.getElementById(tbodyId);
-      tbody.innerHTML = rows.map(r =>
-        '<tr>' + cols.map(c => '<td>' + (r[c] ?? '') + '</td>').join('') + '</tr>'
-      ).join('');
+    function fillTable(id, columns, rows) {
+      const table = document.getElementById(id);
+      table.columns = columns;
+      table.rows    = rows;
+      table.hidden  = false;
     }
 
     async function loadDashboard() {
@@ -112,42 +92,48 @@
         if (!res.ok) throw new Error('POST failed: ' + res.status);
         const data = await res.json();
 
-        // Revenue
-        fillTable('body-revenue', data.revenue,
-          data.revenue.map(r => ({ month: r.month, total: fmt(r.total) })),
-          ['month', 'total']);
-        document.getElementById('table-revenue').hidden = false;
-        document.getElementById('msg-revenue').hidden   = true;
+        fillTable('table-revenue',
+          [
+            { key: 'month', label: 'เดือน' },
+            { key: 'total', label: 'ยอดรวม (บาท)', align: 'right' },
+          ],
+          data.revenue.map(r => ({ month: r.month, total: fmt(r.total) })));
+        document.getElementById('msg-revenue').hidden = true;
 
-        // Top customers
-        fillTable('body-customers',
-          data.topCustomers.map(r => ({ customer: r.customer, total: fmt(r.total) })),
-          ['customer', 'total']);
-        document.getElementById('table-customers').hidden = false;
+        fillTable('table-customers',
+          [
+            { key: 'customer', label: 'ลูกค้า' },
+            { key: 'total',    label: 'ยอดรวม (บาท)', align: 'right' },
+          ],
+          data.topCustomers.map(r => ({ customer: r.customer, total: fmt(r.total) })));
 
-        // Pipeline
-        fillTable('body-pipeline',
-          data.pipeline.map(r => ({ stage: r.stage, count: r.count, total: fmt(r.total) })),
-          ['stage', 'count', 'total']);
-        document.getElementById('table-pipeline').hidden = false;
+        fillTable('table-pipeline',
+          [
+            { key: 'stage', label: 'ขั้นตอน' },
+            { key: 'count', label: 'จำนวน', align: 'right' },
+            { key: 'total', label: 'มูลค่าคาดการณ์ (บาท)', align: 'right' },
+          ],
+          data.pipeline.map(r => ({ stage: r.stage, count: r.count, total: fmt(r.total) })));
 
-        // Top items
-        fillTable('body-items',
-          data.topItems.map(r => ({ item: r.item, qty: r.qty, total: fmt(r.total) })),
-          ['item', 'qty', 'total']);
-        document.getElementById('table-items').hidden = false;
+        fillTable('table-items',
+          [
+            { key: 'item',  label: 'สินค้า' },
+            { key: 'qty',   label: 'จำนวน', align: 'right' },
+            { key: 'total', label: 'ยอดรวม (บาท)', align: 'right' },
+          ],
+          data.topItems.map(r => ({ item: r.item, qty: r.qty, total: fmt(r.total) })));
 
       } catch (err) {
-        document.getElementById('msg-revenue').setAttribute('type', 'error');
-        document.getElementById('msg-revenue').textContent = 'โหลดข้อมูลไม่สำเร็จ: ' + err.message;
-        document.getElementById('msg-revenue').hidden = false;
+        const alert = document.getElementById('msg-revenue');
+        alert.setAttribute('type', 'error');
+        alert.textContent = 'โหลดข้อมูลไม่สำเร็จ: ' + err.message;
+        alert.hidden = false;
       } finally {
         btn.disabled = false;
       }
     }
 
     document.getElementById('btn-load').addEventListener('click', loadDashboard);
-    // Auto-load on page open
     loadDashboard();
   </script>
 </body>

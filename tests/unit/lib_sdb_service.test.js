@@ -62,12 +62,12 @@ describe('fetchRevenue', () => {
     expect(sql).not.toContain('salesrep');
   });
 
-  it('converts dates to MM/DD/YYYY in SQL', () => {
+  it('wraps date literals with TO_DATE for Oracle SuiteQL', () => {
     mockQuery([]);
     service.fetchRevenue({ dateFrom: '2026-03-01', dateTo: '2026-03-31', repId: null });
     const sql = query.runSuiteQL.mock.calls[0][0].query;
-    expect(sql).toContain("'03/01/2026'");
-    expect(sql).toContain("'03/31/2026'");
+    expect(sql).toContain("TO_DATE('03/01/2026','MM/DD/YYYY')");
+    expect(sql).toContain("TO_DATE('03/31/2026','MM/DD/YYYY')");
   });
 });
 

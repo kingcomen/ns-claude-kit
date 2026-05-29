@@ -29,13 +29,13 @@ define(['N/query', 'N/format', 'N/log'], function (query, format, log) {
     const from  = toSuiteQLDate(params.dateFrom);
     const to    = toSuiteQLDate(params.dateTo);
     const sql =
-      'SELECT TO_CHAR(t.trandate,\'YYYY-MM\') AS month, SUM(t.amount) AS total ' +
+      'SELECT TO_CHAR(t.trandate,\'YYYY-MM\') AS month, SUM(t.foreigntotal) AS total ' +
       'FROM transaction t ' +
       'WHERE t.type = \'CustInvc\' ' +
-      'AND t.trandate >= \'' + from + '\' AND t.trandate <= \'' + to + '\'' +
-      repFilter(params.repId) + ' ' +
-      'GROUP BY TO_CHAR(t.trandate,\'YYYY-MM\') ' +
-      'ORDER BY month';
+      'AND t.trandate >= TO_DATE(\'' + from + '\',\'MM/DD/YYYY\') ' +
+      'AND t.trandate <= TO_DATE(\'' + to + '\',\'MM/DD/YYYY\')' +
+      repFilter(params.repId) +
+      ' GROUP BY TO_CHAR(t.trandate,\'YYYY-MM\') ORDER BY month';
     const result = query.runSuiteQL({ query: sql });
     timer.log();
     return result.asMappedResults();
@@ -47,15 +47,14 @@ define(['N/query', 'N/format', 'N/log'], function (query, format, log) {
     const to    = toSuiteQLDate(params.dateTo);
     const n     = parseInt(params.limit, 10) || 10;
     const sql =
-      'SELECT e.altname AS customer, SUM(t.amount) AS total ' +
+      'SELECT e.altname AS customer, SUM(t.foreigntotal) AS total ' +
       'FROM transaction t ' +
       'JOIN entity e ON t.entity = e.id ' +
       'WHERE t.type = \'CustInvc\' ' +
-      'AND t.trandate >= \'' + from + '\' AND t.trandate <= \'' + to + '\'' +
-      repFilter(params.repId) + ' ' +
-      'GROUP BY e.altname ' +
-      'ORDER BY total DESC ' +
-      'FETCH FIRST ' + n + ' ROWS ONLY';
+      'AND t.trandate >= TO_DATE(\'' + from + '\',\'MM/DD/YYYY\') ' +
+      'AND t.trandate <= TO_DATE(\'' + to + '\',\'MM/DD/YYYY\')' +
+      repFilter(params.repId) +
+      ' GROUP BY e.altname ORDER BY total DESC FETCH FIRST ' + n + ' ROWS ONLY';
     const result = query.runSuiteQL({ query: sql });
     timer.log();
     return result.asMappedResults();
@@ -63,16 +62,12 @@ define(['N/query', 'N/format', 'N/log'], function (query, format, log) {
 
   function fetchPipeline(params) {
     const timer = makeTimer('fetchPipeline');
-    const from  = toSuiteQLDate(params.dateFrom);
-    const to    = toSuiteQLDate(params.dateTo);
     const sql =
-      'SELECT t.salesstage AS stage, COUNT(*) AS count, SUM(t.projectedamount) AS total ' +
+      'SELECT t.status AS stage, COUNT(t.id) AS count, SUM(t.projectedtotal) AS total ' +
       'FROM transaction t ' +
-      'WHERE t.type = \'Opprtnty\' ' +
-      'AND t.trandate >= \'' + from + '\' AND t.trandate <= \'' + to + '\'' +
-      repFilter(params.repId) + ' ' +
-      'GROUP BY t.salesstage ' +
-      'ORDER BY total DESC';
+      'WHERE t.type = \'Opprtnty\'' +
+      repFilter(params.repId) +
+      ' GROUP BY t.status ORDER BY total DESC';
     const result = query.runSuiteQL({ query: sql });
     timer.log();
     return result.asMappedResults();
@@ -84,17 +79,16 @@ define(['N/query', 'N/format', 'N/log'], function (query, format, log) {
     const to    = toSuiteQLDate(params.dateTo);
     const n     = parseInt(params.limit, 10) || 10;
     const sql =
-      'SELECT i.displayname AS item, SUM(tl.quantity) AS qty, SUM(tl.amount) AS total ' +
+      'SELECT i.displayname AS item, SUM(tl.quantity) AS qty, SUM(tl.foreignamount) AS total ' +
       'FROM transactionline tl ' +
       'JOIN transaction t ON tl.transaction = t.id ' +
       'JOIN item i ON tl.item = i.id ' +
       'WHERE t.type = \'CustInvc\' ' +
-      'AND t.trandate >= \'' + from + '\' AND t.trandate <= \'' + to + '\'' +
-      repFilter(params.repId) + ' ' +
       'AND tl.item IS NOT NULL ' +
-      'GROUP BY i.displayname ' +
-      'ORDER BY total DESC ' +
-      'FETCH FIRST ' + n + ' ROWS ONLY';
+      'AND t.trandate >= TO_DATE(\'' + from + '\',\'MM/DD/YYYY\') ' +
+      'AND t.trandate <= TO_DATE(\'' + to + '\',\'MM/DD/YYYY\')' +
+      repFilter(params.repId) +
+      ' GROUP BY i.displayname ORDER BY total DESC FETCH FIRST ' + n + ' ROWS ONLY';
     const result = query.runSuiteQL({ query: sql });
     timer.log();
     return result.asMappedResults();
