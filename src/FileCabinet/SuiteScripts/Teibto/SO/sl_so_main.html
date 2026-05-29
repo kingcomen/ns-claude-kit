@@ -22,15 +22,29 @@
       <tbt-section title="ลูกค้า">
         <tbt-field-grid columns="2">
           <tbt-search id="customer-search" placeholder="ค้นหาลูกค้า (ชื่อหรือรหัส)" debounce="300"></tbt-search>
-          <tbt-field id="customer-selected" label="ลูกค้าที่เลือก" value="—"></tbt-field>
+          <tbt-field  id="customer-selected" label="ลูกค้าที่เลือก" value="—"></tbt-field>
         </tbt-field-grid>
         <tbt-dropdown id="customer-pick" label="ผลการค้นหา" hidden></tbt-dropdown>
       </tbt-section>
 
       <tbt-section title="ข้อมูลเอกสาร">
         <tbt-field-grid columns="2">
-          <tbt-datepicker id="trandate" label="วันที่"></tbt-datepicker>
-          <tbt-input      id="memo"     label="หมายเหตุ"></tbt-input>
+          <tbt-datepicker id="trandate"    label="วันที่"></tbt-datepicker>
+          <tbt-dropdown   id="subsidiary"  label="บริษัทย่อย" hidden></tbt-dropdown>
+        </tbt-field-grid>
+        <tbt-field-grid columns="3">
+          <tbt-dropdown id="location"   label="สถานที่"></tbt-dropdown>
+          <tbt-dropdown id="classid"    label="ประเภทธุรกิจ"></tbt-dropdown>
+          <tbt-dropdown id="department" label="แผนก"></tbt-dropdown>
+        </tbt-field-grid>
+        <tbt-field-grid columns="3">
+          <tbt-dropdown id="currency"   label="สกุลเงิน"></tbt-dropdown>
+          <tbt-dropdown id="terms"      label="เครดิตเทอม"></tbt-dropdown>
+          <tbt-dropdown id="salesrep-pick" label="พนักงานขาย" hidden></tbt-dropdown>
+        </tbt-field-grid>
+        <tbt-field-grid columns="2">
+          <tbt-search id="salesrep-search" placeholder="ค้นหาพนักงานขาย" debounce="300"></tbt-search>
+          <tbt-input  id="memo"            label="หมายเหตุ"></tbt-input>
         </tbt-field-grid>
       </tbt-section>
 
@@ -60,7 +74,7 @@
     </tbt-field-grid>
     <tbt-dropdown id="item-pick" label="ผลการค้นหา" hidden></tbt-dropdown>
     <tbt-field-grid columns="2">
-      <tbt-input id="line-qty"  label="จำนวน"      type="number" value="1"></tbt-input>
+      <tbt-input id="line-qty"  label="จำนวน"        type="number" value="1"></tbt-input>
       <tbt-input id="line-rate" label="ราคาต่อหน่วย" type="number" placeholder="(ใช้ค่า default จากสินค้า)"></tbt-input>
     </tbt-field-grid>
     <tbt-input id="line-desc" label="คำอธิบาย (optional)"></tbt-input>
@@ -76,6 +90,7 @@
 
     const state = {
       customer: null,
+      salesrep: null,
       lines:    [],
       tempItem: null,
     };
@@ -103,6 +118,32 @@
       a.hidden = false;
     }
 
+    function blank() { return [{ value: '', label: '— ไม่ระบุ —' }]; }
+
+    function asOpts(rows, labelKey) {
+      return blank().concat(rows.map(r => ({ value: String(r.id), label: r[labelKey || 'name'] })));
+    }
+
+    // ─── Header dropdowns — bulk-loaded once on page open ─────────────────────
+    (async function loadDropdowns() {
+      try {
+        const d = await post({ action: 'load_form_data' });
+        if (d.isOneWorld) {
+          document.getElementById('subsidiary').removeAttribute('hidden');
+          document.getElementById('subsidiary').options = asOpts(d.subsidiaries);
+        }
+        document.getElementById('location').options   = asOpts(d.locations);
+        document.getElementById('classid').options    = asOpts(d.classes);
+        document.getElementById('department').options = asOpts(d.departments);
+        document.getElementById('currency').options   = (d.currencies || []).map(r => ({
+          value: String(r.id), label: (r.symbol ? r.symbol + ' — ' : '') + r.name,
+        }));
+        document.getElementById('terms').options      = asOpts(d.terms);
+      } catch (err) {
+        showMsg('error', 'โหลด dropdown ไม่สำเร็จ: ' + err.message);
+      }
+    })();
+
     // ─── Customer typeahead ───────────────────────────────────────────────────
     const customerSearch = document.getElementById('customer-search');
     const customerPick   = document.getElementById('customer-pick');
@@ -129,18 +170,53 @@
       const opt = (customerPick.options || []).find(o => o.value === id);
       state.customer = { id, label: opt ? opt.label : id };
       customerLabel.value = state.customer.label;
-      // Pre-fetch cascade defaults so a save failure surfaces missing fields early
-      try { await post({ action: 'lookup_customer', id }); }
-      catch (err) { showMsg('error', 'ดึงข้อมูลลูกค้าไม่สำเร็จ: ' + err.message); }
+      // Auto-fill header defaults from customer's record
+      try {
+        const c = await post({ action: 'lookup_customer', id });
+        function pickId(field) { return field && field[0] && field[0].value; }
+        if (pickId(c.subsidiary)) document.getElementById('subsidiary').value = String(pickId(c.subsidiary));
+        if (pickId(c.currency))   document.getElementById('currency').value   = String(pickId(c.currency));
+        if (pickId(c.terms))      document.getElementById('terms').value      = String(pickId(c.terms));
+        if (pickId(c.salesrep)) {
+          state.salesrep = { id: String(pickId(c.salesrep)), label: c.salesrep[0].text || '' };
+          const repPick = document.getElementById('salesrep-pick');
+          repPick.options = [{ value: state.salesrep.id, label: state.salesrep.label }];
+          repPick.value = state.salesrep.id;
+          repPick.removeAttribute('hidden');
+        }
+      } catch (err) { showMsg('error', 'ดึงข้อมูลลูกค้าไม่สำเร็จ: ' + err.message); }
+    });
+
+    // ─── Salesrep typeahead ───────────────────────────────────────────────────
+    const salesrepSearch = document.getElementById('salesrep-search');
+    const salesrepPick   = document.getElementById('salesrep-pick');
+
+    salesrepSearch.addEventListener('tbt-search', async (e) => {
+      const q = e.detail.value || '';
+      if (q.length < 2) return;
+      try {
+        const rows = await post({ action: 'search_salesrep', q });
+        salesrepPick.options = rows.map(r => ({ value: String(r.id), label: r.entityid }));
+        salesrepPick.removeAttribute('hidden');
+      } catch (err) {
+        showMsg('error', 'ค้นหาพนักงานขายไม่สำเร็จ: ' + err.message);
+      }
+    });
+
+    salesrepPick.addEventListener('tbt-change', (e) => {
+      const id = e.detail.value;
+      if (!id) { state.salesrep = null; return; }
+      const opt = (salesrepPick.options || []).find(o => o.value === id);
+      state.salesrep = { id, label: opt ? opt.label : id };
     });
 
     // ─── Lines table ──────────────────────────────────────────────────────────
     const linesTable = document.getElementById('lines-table');
     linesTable.columns = [
       { key: 'item',     label: 'สินค้า' },
-      { key: 'quantity', label: 'จำนวน',       align: 'right' },
-      { key: 'rate',     label: 'ราคา',         align: 'right' },
-      { key: 'amount',   label: 'รวม',          align: 'right' },
+      { key: 'quantity', label: 'จำนวน', align: 'right' },
+      { key: 'rate',     label: 'ราคา',   align: 'right' },
+      { key: 'amount',   label: 'รวม',    align: 'right' },
     ];
     linesTable.rows = [];
 
@@ -215,6 +291,11 @@
     });
 
     // ─── Save ─────────────────────────────────────────────────────────────────
+    function val(id) {
+      const v = document.getElementById(id).value;
+      return v && v !== '' ? v : null;
+    }
+
     document.getElementById('btn-save').addEventListener('click', async () => {
       if (!state.customer) { showMsg('error', 'กรุณาเลือกลูกค้า'); return; }
       if (state.lines.length === 0) { showMsg('error', 'กรุณาเพิ่มรายการสินค้าอย่างน้อย 1 รายการ'); return; }
@@ -227,9 +308,16 @@
         const result = await post({
           action: 'create_so',
           header: {
-            entity:   state.customer.id,
-            trandate: document.getElementById('trandate').value,
-            memo:     document.getElementById('memo').value || '',
+            entity:     state.customer.id,
+            trandate:   val('trandate'),
+            subsidiary: val('subsidiary'),
+            location:   val('location'),
+            classid:    val('classid'),
+            department: val('department'),
+            currency:   val('currency'),
+            terms:      val('terms'),
+            salesrep:   state.salesrep ? state.salesrep.id : null,
+            memo:       document.getElementById('memo').value || '',
           },
           lines: state.lines.map(l => ({
             item:        l.item,
