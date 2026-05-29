@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suitelet scriptid="customscript_so">
+  <name>SO Sales Order - Create</name>
+  <scriptfile>[/SuiteScripts/Teibto/SO/sl_so_main.js]</scriptfile>
+  <description>SO Sales Order - Create page (Phase 1 MVP)</description>
+  <isinactive>F</isinactive>
+  <notifyadmins>F</notifyadmins>
+  <notifyemails></notifyemails>
+  <notifygroup></notifygroup>
+  <notifyowner>T</notifyowner>
+  <scriptdeployments>
+    <scriptdeployment scriptid="customdeploy_so">
+      <title>SO Sales Order - Create</title>
+      <isdeployed>T</isdeployed>
+      <loglevel>DEBUG</loglevel>
+      <status>RELEASED</status>
+      <allroles>T</allroles>
+      <allemployees>F</allemployees>
+    </scriptdeployment>
+  </scriptdeployments>
+</suitelet>

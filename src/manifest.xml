@@ -1,4 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <manifest projecttype="ACCOUNTCUSTOMIZATION">
-    <projectname>ns-feature-template</projectname>
-    <frameworkversion>1.0</frameworkversion>
+  <projectname>ns-feature-template</projectname>
+  <frameworkversion>1.0</frameworkversion>
+  <dependencies>
+    <features>
+      <feature required="true">SERVERSIDESCRIPTING</feature>
+    </features>
+  </dependencies>
 </manifest>
