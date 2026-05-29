@@ -55,10 +55,19 @@
       </tbt-section>
 
       <tbt-section title="รายการสินค้า">
-        <div slot="actions">
-          <tbt-button id="btn-add-line" variant="primary" icon="plus">เพิ่มรายการ</tbt-button>
-        </div>
         <tbt-table id="lines-table"></tbt-table>
+
+        <tbt-field-grid columns="2">
+          <tbt-search id="item-search" placeholder="ค้นหาสินค้าเพื่อเพิ่มรายการ" debounce="300"></tbt-search>
+          <tbt-field  id="item-selected" label="สินค้าที่เลือก" value="—"></tbt-field>
+        </tbt-field-grid>
+        <tbt-dropdown id="item-pick" label="ผลการค้นหา" hidden></tbt-dropdown>
+        <tbt-field-grid columns="4">
+          <tbt-input  id="line-qty"  label="จำนวน"        type="number" value="1"></tbt-input>
+          <tbt-input  id="line-rate" label="ราคาต่อหน่วย" type="number" placeholder="(ใช้ค่า default จากสินค้า)"></tbt-input>
+          <tbt-input  id="line-desc" label="คำอธิบาย (optional)"></tbt-input>
+          <tbt-button id="btn-add-line" variant="primary" icon="plus">เพิ่มรายการ</tbt-button>
+        </tbt-field-grid>
       </tbt-section>
 
       <tbt-alert id="form-msg" type="info" hidden></tbt-alert>
@@ -72,23 +81,6 @@
 
     </main>
   </tbt-app-shell>
-
-  <tbt-modal id="line-modal" title="เพิ่มรายการสินค้า">
-    <tbt-field-grid columns="2">
-      <tbt-search id="item-search" placeholder="ค้นหาสินค้า" debounce="300"></tbt-search>
-      <tbt-field  id="item-selected" label="สินค้าที่เลือก" value="—"></tbt-field>
-    </tbt-field-grid>
-    <tbt-dropdown id="item-pick" label="ผลการค้นหา" hidden></tbt-dropdown>
-    <tbt-field-grid columns="2">
-      <tbt-input id="line-qty"  label="จำนวน"        type="number" value="1"></tbt-input>
-      <tbt-input id="line-rate" label="ราคาต่อหน่วย" type="number" placeholder="(ใช้ค่า default จากสินค้า)"></tbt-input>
-    </tbt-field-grid>
-    <tbt-input id="line-desc" label="คำอธิบาย (optional)"></tbt-input>
-    <div slot="footer">
-      <tbt-button id="modal-cancel" variant="secondary">ยกเลิก</tbt-button>
-      <tbt-button id="modal-add"    variant="primary">เพิ่ม</tbt-button>
-    </div>
-  </tbt-modal>
 
   <script type="module">
     const USER = "__USER_CTX__";
@@ -245,8 +237,7 @@
       }));
     }
 
-    // ─── Add-Line modal ───────────────────────────────────────────────────────
-    const lineModal   = document.getElementById('line-modal');
+    // ─── Inline Add-Line form ─────────────────────────────────────────────────
     const itemSearch  = document.getElementById('item-search');
     const itemPick    = document.getElementById('item-pick');
     const itemLabel   = document.getElementById('item-selected');
@@ -254,18 +245,16 @@
     const lineRate    = document.getElementById('line-rate');
     const lineDesc    = document.getElementById('line-desc');
 
-    document.getElementById('btn-add-line').addEventListener('click', () => {
-      state.tempItem = null;
+    function resetLineForm() {
+      state.tempItem  = null;
       itemSearch.value = '';
-      itemPick.hidden = true;
-      itemLabel.value = '—';
-      lineQty.value = '1';
-      lineRate.value = '';
-      lineDesc.value = '';
-      lineModal.open = true;
-    });
-
-    document.getElementById('modal-cancel').addEventListener('click', () => { lineModal.open = false; });
+      itemPick.hidden  = true;
+      itemPick.options = [];
+      itemLabel.value  = '—';
+      lineQty.value    = '1';
+      lineRate.value   = '';
+      lineDesc.value   = '';
+    }
 
     itemSearch.addEventListener('tbt-search', async (e) => {
       const q = e.detail.value || '';
@@ -290,8 +279,8 @@
       itemLabel.value = state.tempItem.label;
     });
 
-    document.getElementById('modal-add').addEventListener('click', () => {
-      if (!state.tempItem) { showMsg('error', 'กรุณาเลือกสินค้า'); return; }
+    document.getElementById('btn-add-line').addEventListener('click', () => {
+      if (!state.tempItem) { showMsg('error', 'กรุณาเลือกสินค้าก่อน'); return; }
       const qty = Number(lineQty.value);
       if (!qty || qty <= 0) { showMsg('error', 'จำนวนต้องมากกว่า 0'); return; }
       state.lines.push({
@@ -302,7 +291,7 @@
         description: lineDesc.value || '',
       });
       refreshLines();
-      lineModal.open = false;
+      resetLineForm();
       showMsg('success', 'เพิ่มรายการแล้ว — รวม ' + state.lines.length + ' รายการ');
     });
 
