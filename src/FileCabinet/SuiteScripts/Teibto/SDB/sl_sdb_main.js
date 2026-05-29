@@ -16,8 +16,8 @@ define(['N/file', 'N/log', 'N/runtime', './lib_sdb_service'], function (file, lo
   const MANAGER_ROLE_IDS = [3, 15]; // 3 = Administrator, 15 = Sales Manager (default NS IDs)
 
   const HTML_PATH    = '/SuiteScripts/Teibto/SDB/sl_sdb_main.html';
-  const TBT_DS_CSS   = '/SuiteScripts/Teibto/ds/v1.42.0/tbt-theme.css';
-  const TBT_DS_JS    = '/SuiteScripts/Teibto/ds/v1.42.0/tbt-ds.min.js';
+  const TBT_DS_CSS   = '/SuiteScripts/Teibto/ds/v1.42.1/tbt-theme.css';
+  const TBT_DS_JS    = '/SuiteScripts/Teibto/ds/v1.42.1/tbt-ds.min.js';
 
   function loadUrl(path) {
     return file.load({ id: path }).url;
