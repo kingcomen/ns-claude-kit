@@ -1,8 +1,9 @@
 /**
- * SO — Sales Order business logic (Phase 1 MVP).
+ * SO — Sales Order business logic (Phase 2).
  * All N/* calls live here; unit tests mock them.
  *
- * Actions: searchCustomer, searchItem, lookupCustomer, createSalesOrder.
+ * Actions: loadFormData, searchCustomer, searchItem, searchSalesrep,
+ *          lookupCustomer, createSalesOrder.
  *
  * @NApiVersion 2.1
  * @author Wichit Wongta
@@ -19,6 +20,34 @@ define(['N/query', 'N/search', 'N/record', 'N/runtime', 'N/log'], function (quer
     return String(q || '').replace(/'/g, "''");
   }
 
+  function rows(sql) {
+    return query.runSuiteQL({ query: sql }).asMappedResults();
+  }
+
+  /**
+   * Bulk-fetch all header dropdown sources in one round-trip.
+   * Each query is 10 governance units — total 6 × 10 = 60 units (well under 1000).
+   * The lists are small (< 200 rows each typically) and rarely change, so the
+   * client can cache for the session.
+   */
+  function loadFormData() {
+    const timer = makeTimer('loadFormData');
+    const isOW = runtime.isFeatureInEffect({ feature: 'SUBSIDIARIES' });
+    const data = {
+      isOneWorld:   isOW,
+      subsidiaries: isOW
+        ? rows("SELECT id, name FROM subsidiary WHERE isinactive = 'F' ORDER BY name")
+        : [],
+      locations:    rows("SELECT id, name FROM location       WHERE isinactive = 'F' ORDER BY name"),
+      classes:      rows("SELECT id, name FROM classification WHERE isinactive = 'F' ORDER BY name"),
+      departments:  rows("SELECT id, name FROM department     WHERE isinactive = 'F' ORDER BY name"),
+      currencies:   rows("SELECT id, name, symbol FROM currency WHERE isinactive = 'F' ORDER BY name"),
+      terms:        rows("SELECT id, name FROM term           WHERE isinactive = 'F' ORDER BY name"),
+    };
+    timer.log();
+    return data;
+  }
+
   function searchCustomer(q) {
     const timer = makeTimer('searchCustomer');
     const term  = escapeQ(q).trim();
@@ -29,9 +58,9 @@ define(['N/query', 'N/search', 'N/record', 'N/runtime', 'N/log'], function (quer
       "AND (LOWER(entityid) LIKE '%" + term.toLowerCase() + "%' " +
       "  OR LOWER(companyname) LIKE '%" + term.toLowerCase() + "%') " +
       "ORDER BY entityid FETCH FIRST 20 ROWS ONLY";
-    const rows = query.runSuiteQL({ query: sql }).asMappedResults();
+    const result = rows(sql);
     timer.log();
-    return rows;
+    return result;
   }
 
   function searchItem(q) {
@@ -44,14 +73,28 @@ define(['N/query', 'N/search', 'N/record', 'N/runtime', 'N/log'], function (quer
       "AND (LOWER(itemid) LIKE '%" + term.toLowerCase() + "%' " +
       "  OR LOWER(displayname) LIKE '%" + term.toLowerCase() + "%') " +
       "ORDER BY itemid FETCH FIRST 20 ROWS ONLY";
-    const rows = query.runSuiteQL({ query: sql }).asMappedResults();
+    const result = rows(sql);
     timer.log();
-    return rows;
+    return result;
+  }
+
+  function searchSalesrep(q) {
+    const timer = makeTimer('searchSalesrep');
+    const term  = escapeQ(q).trim();
+    if (term.length < 2) { timer.log(); return []; }
+    const sql =
+      "SELECT id, entityid FROM employee " +
+      "WHERE isinactive = 'F' AND issalesrep = 'T' " +
+      "AND LOWER(entityid) LIKE '%" + term.toLowerCase() + "%' " +
+      "ORDER BY entityid FETCH FIRST 20 ROWS ONLY";
+    const result = rows(sql);
+    timer.log();
+    return result;
   }
 
   /**
-   * Reads fields needed for the customer-driven cascade so the UI can warn
-   * the user (and the service can validate) before save.
+   * Reads fields needed for the customer-driven cascade so the UI can
+   * auto-fill header defaults before the user clicks Save.
    * Uses search.lookupFields (1 unit) — faster than runSuiteQL (10 units).
    */
   function lookupCustomer(id) {
@@ -59,7 +102,7 @@ define(['N/query', 'N/search', 'N/record', 'N/runtime', 'N/log'], function (quer
     const r = search.lookupFields({
       type: search.Type.CUSTOMER,
       id: parseInt(id, 10),
-      columns: ['currency', 'terms', 'taxitem', 'subsidiary', 'defaultshippingaddress'],
+      columns: ['currency', 'terms', 'taxitem', 'subsidiary', 'salesrep', 'defaultshippingaddress'],
     });
     timer.log();
     return r;
@@ -92,12 +135,20 @@ define(['N/query', 'N/search', 'N/record', 'N/runtime', 'N/log'], function (quer
 
     rec.setValue({ fieldId: 'entity', value: parseInt(header.entity, 10) });
 
-    if (header.trandate) {
-      rec.setValue({ fieldId: 'trandate', value: new Date(header.trandate) });
+    // Header overrides — only set when caller provided a value (NS sources from
+    // customer defaults otherwise, so passing null/undefined would wipe them).
+    function setIf(fieldId, value, transform) {
+      if (value === null || value === undefined || value === '') return;
+      rec.setValue({ fieldId: fieldId, value: transform ? transform(value) : value });
     }
-    if (header.memo) {
-      rec.setValue({ fieldId: 'memo', value: String(header.memo) });
-    }
+    setIf('trandate',    header.trandate,    function (v) { return new Date(v); });
+    setIf('location',    header.location,    function (v) { return parseInt(v, 10); });
+    setIf('class',       header.classid,     function (v) { return parseInt(v, 10); });
+    setIf('department',  header.department,  function (v) { return parseInt(v, 10); });
+    setIf('currency',    header.currency,    function (v) { return parseInt(v, 10); });
+    setIf('terms',       header.terms,       function (v) { return parseInt(v, 10); });
+    setIf('salesrep',    header.salesrep,    function (v) { return parseInt(v, 10); });
+    setIf('memo',        header.memo,        function (v) { return String(v); });
 
     for (let i = 0; i < lines.length; i++) {
       const ln = lines[i];
@@ -123,8 +174,10 @@ define(['N/query', 'N/search', 'N/record', 'N/runtime', 'N/log'], function (quer
   return {
     makeTimer:         makeTimer,
     escapeQ:           escapeQ,
+    loadFormData:      loadFormData,
     searchCustomer:    searchCustomer,
     searchItem:        searchItem,
+    searchSalesrep:    searchSalesrep,
     lookupCustomer:    lookupCustomer,
     createSalesOrder:  createSalesOrder,
   };

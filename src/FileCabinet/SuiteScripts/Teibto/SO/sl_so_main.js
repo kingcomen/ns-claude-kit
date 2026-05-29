@@ -1,7 +1,8 @@
 /**
  * SO Sales Order — thin Suitelet entry point.
  * GET  → reads sl_so_main.html, injects DS bundle URLs + user context, serves it.
- * POST → dispatches by body.action: search_customer, search_item, lookup_customer, create_so.
+ * POST → dispatches by body.action: load_form_data, search_customer, search_item,
+ *        search_salesrep, lookup_customer, create_so.
  *
  * @NScriptType Suitelet
  * @NApiVersion 2.1
@@ -20,8 +21,10 @@ define(['N/file', 'N/log', 'N/runtime', './lib_so_service'], function (file, log
   function dispatchPost(body) {
     const action = body && body.action;
     switch (action) {
+      case 'load_form_data':   return service.loadFormData();
       case 'search_customer':  return service.searchCustomer(body.q);
       case 'search_item':      return service.searchItem(body.q);
+      case 'search_salesrep':  return service.searchSalesrep(body.q);
       case 'lookup_customer':  return service.lookupCustomer(body.id);
       case 'create_so':        return service.createSalesOrder({ header: body.header, lines: body.lines });
       default: throw new Error('Unknown action: ' + action);

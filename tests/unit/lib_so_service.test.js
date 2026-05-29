@@ -114,13 +114,82 @@ describe('searchItem', () => {
 // ─── lookupCustomer ───────────────────────────────────────────────────────────
 
 describe('lookupCustomer', () => {
-  it('uses search.lookupFields with cascade columns', () => {
+  it('uses search.lookupFields with cascade columns (incl. salesrep)', () => {
     search.lookupFields.mockReturnValueOnce({ currency: [{ value: 1 }], terms: [], taxitem: [] });
     service.lookupCustomer(42);
     expect(search.lookupFields).toHaveBeenCalledWith({
       type: 'customer',
       id: 42,
-      columns: ['currency', 'terms', 'taxitem', 'subsidiary', 'defaultshippingaddress'],
+      columns: ['currency', 'terms', 'taxitem', 'subsidiary', 'salesrep', 'defaultshippingaddress'],
+    });
+  });
+});
+
+// ─── searchSalesrep ───────────────────────────────────────────────────────────
+
+describe('searchSalesrep', () => {
+  it('returns mapped employee results', () => {
+    mockSql([{ id: 17, entityid: 'Alice' }]);
+    expect(service.searchSalesrep('alic')).toEqual([{ id: 17, entityid: 'Alice' }]);
+  });
+
+  it('filters to issalesrep=T only', () => {
+    mockSql([]);
+    service.searchSalesrep('alic');
+    const sql = query.runSuiteQL.mock.calls[0][0].query;
+    expect(sql).toContain("issalesrep = 'T'");
+  });
+
+  it('returns empty array when query is too short', () => {
+    expect(service.searchSalesrep('a')).toEqual([]);
+    expect(query.runSuiteQL).not.toHaveBeenCalled();
+  });
+});
+
+// ─── loadFormData ─────────────────────────────────────────────────────────────
+
+describe('loadFormData', () => {
+  function setupOWQueries() {
+    // 6 queries when OneWorld: subsidiary, location, classification, department, currency, term
+    for (let i = 0; i < 6; i++) {
+      query.runSuiteQL.mockReturnValueOnce({ asMappedResults: () => [] });
+    }
+  }
+
+  it('runs all dropdown queries in OneWorld mode', () => {
+    runtime.isFeatureInEffect.mockReturnValue(true);
+    setupOWQueries();
+    const out = service.loadFormData();
+    expect(out.isOneWorld).toBe(true);
+    expect(query.runSuiteQL).toHaveBeenCalledTimes(6);
+    const sqls = query.runSuiteQL.mock.calls.map(c => c[0].query);
+    expect(sqls.some(s => /FROM\s+subsidiary/i.test(s))).toBe(true);
+    expect(sqls.some(s => /FROM\s+location/i.test(s))).toBe(true);
+    expect(sqls.some(s => /FROM\s+classification/i.test(s))).toBe(true);
+    expect(sqls.some(s => /FROM\s+department/i.test(s))).toBe(true);
+    expect(sqls.some(s => /FROM\s+currency/i.test(s))).toBe(true);
+    expect(sqls.some(s => /FROM\s+term\b/i.test(s))).toBe(true);
+  });
+
+  it('skips subsidiary query when OneWorld is OFF', () => {
+    runtime.isFeatureInEffect.mockReturnValue(false);
+    for (let i = 0; i < 5; i++) {
+      query.runSuiteQL.mockReturnValueOnce({ asMappedResults: () => [] });
+    }
+    const out = service.loadFormData();
+    expect(out.isOneWorld).toBe(false);
+    expect(out.subsidiaries).toEqual([]);
+    expect(query.runSuiteQL).toHaveBeenCalledTimes(5);
+    const sqls = query.runSuiteQL.mock.calls.map(c => c[0].query);
+    expect(sqls.some(s => /FROM\s+subsidiary/i.test(s))).toBe(false);
+  });
+
+  it('filters inactive rows for every dropdown', () => {
+    runtime.isFeatureInEffect.mockReturnValue(true);
+    setupOWQueries();
+    service.loadFormData();
+    query.runSuiteQL.mock.calls.forEach(c => {
+      expect(c[0].query).toMatch(/isinactive\s*=\s*'F'/i);
     });
   });
 });
@@ -233,5 +302,43 @@ describe('createSalesOrder', () => {
     runtime.isFeatureInEffect.mockReturnValue(false);
     mockRec.save.mockImplementationOnce(() => { throw new Error('Field "subsidiary" is required'); });
     expect(() => service.createSalesOrder(validPayload)).toThrow('Field "subsidiary" is required');
+  });
+
+  it('sets header override fields when provided', () => {
+    runtime.isFeatureInEffect.mockReturnValue(false);
+    service.createSalesOrder({
+      header: {
+        entity: 100, trandate: '2026-05-29', memo: 'm',
+        location: 5, classid: 7, department: 9, currency: 1, terms: 4, salesrep: 17,
+      },
+      lines: validPayload.lines,
+    });
+    const calls = mockRec.setValue.mock.calls.map(c => c[0].fieldId);
+    expect(calls).toEqual(expect.arrayContaining([
+      'entity', 'trandate', 'memo', 'location', 'class', 'department', 'currency', 'terms', 'salesrep',
+    ]));
+  });
+
+  it('skips header override fields when value is null/undefined/empty string', () => {
+    runtime.isFeatureInEffect.mockReturnValue(false);
+    service.createSalesOrder({
+      header: { entity: 100, location: null, classid: '', department: undefined },
+      lines:  validPayload.lines,
+    });
+    const calls = mockRec.setValue.mock.calls.map(c => c[0].fieldId);
+    expect(calls).not.toContain('location');
+    expect(calls).not.toContain('class');
+    expect(calls).not.toContain('department');
+  });
+
+  it('uses fieldId "class" not "classid" for class field', () => {
+    runtime.isFeatureInEffect.mockReturnValue(false);
+    service.createSalesOrder({
+      header: { entity: 100, classid: 7 },
+      lines:  validPayload.lines,
+    });
+    const classCall = mockRec.setValue.mock.calls.find(c => c[0].fieldId === 'class');
+    expect(classCall).toBeDefined();
+    expect(classCall[0].value).toBe(7);
   });
 });
