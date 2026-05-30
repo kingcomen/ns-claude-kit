@@ -19,70 +19,82 @@
 
     <main slot="content">
 
-      <tbt-section title="ลูกค้า">
-        <tbt-field-grid columns="2">
-          <tbt-search id="customer-search" placeholder="ค้นหาลูกค้า (ชื่อหรือรหัส)" debounce="300"></tbt-search>
-          <tbt-field  id="customer-selected" label="ลูกค้าที่เลือก" value="—"></tbt-field>
-        </tbt-field-grid>
-        <tbt-dropdown id="customer-pick" label="ผลการค้นหา" hidden></tbt-dropdown>
-      </tbt-section>
+      <tbt-tabs id="so-tabs">
 
-      <tbt-section title="ข้อมูลเอกสาร">
-        <tbt-field-grid columns="2">
-          <tbt-datepicker id="trandate"    label="วันที่"></tbt-datepicker>
-          <tbt-dropdown   id="subsidiary"  label="บริษัทย่อย" hidden></tbt-dropdown>
-        </tbt-field-grid>
-        <tbt-field-grid columns="3">
-          <tbt-dropdown id="location"   label="สถานที่"></tbt-dropdown>
-          <tbt-dropdown id="classid"    label="ประเภทธุรกิจ"></tbt-dropdown>
-          <tbt-dropdown id="department" label="แผนก"></tbt-dropdown>
-        </tbt-field-grid>
-        <tbt-field-grid columns="3">
-          <tbt-dropdown id="currency"   label="สกุลเงิน"></tbt-dropdown>
-          <tbt-dropdown id="terms"      label="เครดิตเทอม"></tbt-dropdown>
-          <tbt-dropdown id="salesrep-pick" label="พนักงานขาย" hidden></tbt-dropdown>
-        </tbt-field-grid>
-        <tbt-field-grid columns="2">
-          <tbt-search id="salesrep-search" placeholder="ค้นหาพนักงานขาย" debounce="300"></tbt-search>
-          <tbt-input  id="memo"            label="หมายเหตุ"></tbt-input>
-        </tbt-field-grid>
-      </tbt-section>
+        <tbt-tabs-panel label="ลูกค้า + เอกสาร">
 
-      <tbt-section title="รายการสินค้า">
-        <div slot="actions">
-          <tbt-button id="btn-add-line" variant="primary" icon="plus">เพิ่มรายการ</tbt-button>
-        </div>
-        <tbt-table id="lines-table"></tbt-table>
-      </tbt-section>
+          <tbt-section title="ลูกค้า">
+            <tbt-field-grid columns="2">
+              <tbt-search id="customer-search" required label="ค้นหาลูกค้า" placeholder="ชื่อหรือรหัส" debounce="300"></tbt-search>
+              <tbt-field  id="customer-selected" label="ลูกค้าที่เลือก" value="—"></tbt-field>
+            </tbt-field-grid>
+            <tbt-dropdown id="customer-pick" label="ผลการค้นหา" style="display:none"></tbt-dropdown>
+          </tbt-section>
 
-      <tbt-alert id="form-msg" type="info" hidden></tbt-alert>
+          <tbt-section title="ข้อมูลเอกสาร">
+            <tbt-field-grid columns="2">
+              <tbt-datepicker id="trandate"    required label="วันที่"></tbt-datepicker>
+              <tbt-dropdown   id="subsidiary"  label="บริษัทย่อย" style="display:none"></tbt-dropdown>
+            </tbt-field-grid>
+            <tbt-field-grid columns="3">
+              <tbt-dropdown id="location"   label="สถานที่"></tbt-dropdown>
+              <tbt-dropdown id="classid"    label="ประเภทธุรกิจ"></tbt-dropdown>
+              <tbt-dropdown id="department" label="แผนก"></tbt-dropdown>
+            </tbt-field-grid>
+            <tbt-field-grid columns="3">
+              <tbt-dropdown id="currency"   label="สกุลเงิน"></tbt-dropdown>
+              <tbt-dropdown id="terms"      label="เครดิตเทอม"></tbt-dropdown>
+              <tbt-dropdown id="salesrep-pick" label="พนักงานขาย" style="display:none"></tbt-dropdown>
+            </tbt-field-grid>
+            <tbt-search id="salesrep-search" placeholder="ค้นหาพนักงานขาย" debounce="300" style="display:none"></tbt-search>
+            <tbt-field  id="salesrep-locked" label="พนักงานขาย (ล็อกตามผู้ใช้ปัจจุบัน)" value="—" style="display:none"></tbt-field>
+            <tbt-input id="memo" label="หมายเหตุ"></tbt-input>
+          </tbt-section>
 
-      <tbt-section>
-        <div slot="actions">
-          <tbt-button id="btn-cancel" variant="secondary">ยกเลิก</tbt-button>
-          <tbt-button id="btn-save"   variant="primary" icon="device-floppy">สร้างใบสั่งขาย</tbt-button>
-        </div>
-      </tbt-section>
+        </tbt-tabs-panel>
+
+        <tbt-tabs-panel label="การจัดส่ง">
+          <tbt-section title="ข้อมูลจัดส่ง">
+            <tbt-field-grid columns="2">
+              <tbt-datepicker id="shipdate" label="วันที่จัดส่ง"></tbt-datepicker>
+            </tbt-field-grid>
+            <tbt-input id="shipaddress" label="ที่อยู่จัดส่ง (override)" placeholder="ปล่อยว่างเพื่อใช้ที่อยู่ default ของลูกค้า"></tbt-input>
+          </tbt-section>
+        </tbt-tabs-panel>
+
+        <tbt-tabs-panel label="รายการสินค้า">
+          <tbt-section title="รายการที่เพิ่มแล้ว">
+            <tbt-table id="lines-table"></tbt-table>
+          </tbt-section>
+
+          <tbt-section title="เพิ่มรายการใหม่">
+            <tbt-field-grid columns="2">
+              <tbt-search id="item-search" label="ค้นหาสินค้า" placeholder="พิมพ์ชื่อหรือรหัสสินค้า" debounce="300"></tbt-search>
+              <tbt-field  id="item-selected" label="สินค้าที่เลือก" value="—"></tbt-field>
+            </tbt-field-grid>
+            <tbt-dropdown id="item-pick" label="ผลการค้นหา" style="display:none"></tbt-dropdown>
+            <tbt-field-grid columns="3">
+              <tbt-input  id="line-qty"  required label="จำนวน" type="number" value="1"></tbt-input>
+              <tbt-input  id="line-rate" label="ราคาต่อหน่วย" type="number" placeholder="(ใช้ค่า default จากสินค้า)"></tbt-input>
+              <tbt-input  id="line-desc" label="คำอธิบาย (optional)"></tbt-input>
+            </tbt-field-grid>
+            <div style="display:flex; justify-content:flex-end; margin-top:var(--tbt-space-3)">
+              <tbt-button id="btn-add-line" variant="primary" icon="plus">เพิ่มรายการ</tbt-button>
+            </div>
+          </tbt-section>
+        </tbt-tabs-panel>
+
+      </tbt-tabs>
+
+      <tbt-alert id="form-msg" variant="info" style="display:none; margin-top:var(--tbt-space-4)"></tbt-alert>
+
+      <div style="display:flex; gap:var(--tbt-space-3); justify-content:flex-end; padding-top:var(--tbt-space-4); margin-top:var(--tbt-space-4); border-top:1px solid var(--tbt-border)">
+        <tbt-button id="btn-cancel" variant="secondary">ยกเลิก</tbt-button>
+        <tbt-button id="btn-save"   variant="primary" icon="device-floppy">สร้างใบสั่งขาย</tbt-button>
+      </div>
 
     </main>
   </tbt-app-shell>
-
-  <tbt-modal id="line-modal" title="เพิ่มรายการสินค้า">
-    <tbt-field-grid columns="2">
-      <tbt-search id="item-search" placeholder="ค้นหาสินค้า" debounce="300"></tbt-search>
-      <tbt-field  id="item-selected" label="สินค้าที่เลือก" value="—"></tbt-field>
-    </tbt-field-grid>
-    <tbt-dropdown id="item-pick" label="ผลการค้นหา" hidden></tbt-dropdown>
-    <tbt-field-grid columns="2">
-      <tbt-input id="line-qty"  label="จำนวน"        type="number" value="1"></tbt-input>
-      <tbt-input id="line-rate" label="ราคาต่อหน่วย" type="number" placeholder="(ใช้ค่า default จากสินค้า)"></tbt-input>
-    </tbt-field-grid>
-    <tbt-input id="line-desc" label="คำอธิบาย (optional)"></tbt-input>
-    <div slot="footer">
-      <tbt-button id="modal-cancel" variant="secondary">ยกเลิก</tbt-button>
-      <tbt-button id="modal-add"    variant="primary">เพิ่ม</tbt-button>
-    </div>
-  </tbt-modal>
 
   <script type="module">
     const USER = "__USER_CTX__";
@@ -96,6 +108,16 @@
     };
 
     document.getElementById('trandate').value = new Date().toISOString().slice(0, 10);
+
+    // ─── Role gating: salesrep widgets ────────────────────────────────────────
+    if (USER.isManager) {
+      document.getElementById('salesrep-search').style.display = '';
+    } else {
+      const locked = document.getElementById('salesrep-locked');
+      locked.value = USER.name || ('Employee #' + USER.employeeId);
+      locked.style.display = '';
+      state.salesrep = { id: String(USER.employeeId), label: USER.name || '' };
+    }
 
     function fmt(n) {
       return Number(n || 0).toLocaleString('th-TH', { minimumFractionDigits: 2 });
@@ -111,11 +133,24 @@
       return r.json();
     }
 
-    function showMsg(type, text) {
+    const tabs = document.getElementById('so-tabs');
+    const TAB_HEADER = 0, TAB_SHIPPING = 1, TAB_LINES = 2;
+
+    function showMsg(variant, text) {
       const a = document.getElementById('form-msg');
-      a.setAttribute('type', type);
+      a.setAttribute('variant', variant);
       a.textContent = text;
-      a.hidden = false;
+      a.style.display = '';
+    }
+
+    function clearMsg() {
+      const a = document.getElementById('form-msg');
+      a.style.display = 'none';
+    }
+
+    function failOn(tabIdx, message) {
+      tabs.active = tabIdx;
+      showMsg('danger', message);
     }
 
     function blank() { return [{ value: '', label: '— ไม่ระบุ —' }]; }
@@ -129,7 +164,7 @@
       try {
         const d = await post({ action: 'load_form_data' });
         if (d.isOneWorld) {
-          document.getElementById('subsidiary').removeAttribute('hidden');
+          document.getElementById('subsidiary').style.display = '';
           document.getElementById('subsidiary').options = asOpts(d.subsidiaries);
         }
         document.getElementById('location').options   = asOpts(d.locations);
@@ -140,7 +175,7 @@
         }));
         document.getElementById('terms').options      = asOpts(d.terms);
       } catch (err) {
-        showMsg('error', 'โหลด dropdown ไม่สำเร็จ: ' + err.message);
+        showMsg('danger', 'โหลด dropdown ไม่สำเร็จ: ' + err.message);
       }
     })();
 
@@ -151,16 +186,16 @@
 
     customerSearch.addEventListener('tbt-search', async (e) => {
       const q = e.detail.value || '';
-      if (q.length < 2) { customerPick.hidden = true; return; }
+      if (q.length < 2) { customerPick.style.display = 'none'; return; }
       try {
         const rows = await post({ action: 'search_customer', q });
         customerPick.options = rows.map(r => ({
           value: String(r.id),
           label: (r.entityid || '') + (r.companyname ? ' — ' + r.companyname : ''),
         }));
-        customerPick.hidden = false;
+        customerPick.style.display = '';
       } catch (err) {
-        showMsg('error', 'ค้นหาลูกค้าไม่สำเร็จ: ' + err.message);
+        showMsg('danger', 'ค้นหาลูกค้าไม่สำเร็จ: ' + err.message);
       }
     });
 
@@ -177,14 +212,14 @@
         if (pickId(c.subsidiary)) document.getElementById('subsidiary').value = String(pickId(c.subsidiary));
         if (pickId(c.currency))   document.getElementById('currency').value   = String(pickId(c.currency));
         if (pickId(c.terms))      document.getElementById('terms').value      = String(pickId(c.terms));
-        if (pickId(c.salesrep)) {
+        if (USER.isManager && pickId(c.salesrep)) {
           state.salesrep = { id: String(pickId(c.salesrep)), label: c.salesrep[0].text || '' };
           const repPick = document.getElementById('salesrep-pick');
           repPick.options = [{ value: state.salesrep.id, label: state.salesrep.label }];
           repPick.value = state.salesrep.id;
-          repPick.removeAttribute('hidden');
+          repPick.style.display = '';
         }
-      } catch (err) { showMsg('error', 'ดึงข้อมูลลูกค้าไม่สำเร็จ: ' + err.message); }
+      } catch (err) { showMsg('danger', 'ดึงข้อมูลลูกค้าไม่สำเร็จ: ' + err.message); }
     });
 
     // ─── Salesrep typeahead ───────────────────────────────────────────────────
@@ -197,9 +232,9 @@
       try {
         const rows = await post({ action: 'search_salesrep', q });
         salesrepPick.options = rows.map(r => ({ value: String(r.id), label: r.entityid }));
-        salesrepPick.removeAttribute('hidden');
+        salesrepPick.style.display = '';
       } catch (err) {
-        showMsg('error', 'ค้นหาพนักงานขายไม่สำเร็จ: ' + err.message);
+        showMsg('danger', 'ค้นหาพนักงานขายไม่สำเร็จ: ' + err.message);
       }
     });
 
@@ -229,8 +264,7 @@
       }));
     }
 
-    // ─── Add-Line modal ───────────────────────────────────────────────────────
-    const lineModal   = document.getElementById('line-modal');
+    // ─── Inline Add-Line form ─────────────────────────────────────────────────
     const itemSearch  = document.getElementById('item-search');
     const itemPick    = document.getElementById('item-pick');
     const itemLabel   = document.getElementById('item-selected');
@@ -238,31 +272,29 @@
     const lineRate    = document.getElementById('line-rate');
     const lineDesc    = document.getElementById('line-desc');
 
-    document.getElementById('btn-add-line').addEventListener('click', () => {
-      state.tempItem = null;
+    function resetLineForm() {
+      state.tempItem  = null;
       itemSearch.value = '';
-      itemPick.hidden = true;
-      itemLabel.value = '—';
-      lineQty.value = '1';
-      lineRate.value = '';
-      lineDesc.value = '';
-      lineModal.open = true;
-    });
-
-    document.getElementById('modal-cancel').addEventListener('click', () => { lineModal.open = false; });
+      itemPick.style.display = 'none';
+      itemPick.options = [];
+      itemLabel.value  = '—';
+      lineQty.value    = '1';
+      lineRate.value   = '';
+      lineDesc.value   = '';
+    }
 
     itemSearch.addEventListener('tbt-search', async (e) => {
       const q = e.detail.value || '';
-      if (q.length < 2) { itemPick.hidden = true; return; }
+      if (q.length < 2) { itemPick.style.display = 'none'; return; }
       try {
         const rows = await post({ action: 'search_item', q });
         itemPick.options = rows.map(r => ({
           value: String(r.id),
           label: (r.itemid || '') + (r.displayname ? ' — ' + r.displayname : ''),
         }));
-        itemPick.hidden = false;
+        itemPick.style.display = '';
       } catch (err) {
-        showMsg('error', 'ค้นหาสินค้าไม่สำเร็จ: ' + err.message);
+        showMsg('danger', 'ค้นหาสินค้าไม่สำเร็จ: ' + err.message);
       }
     });
 
@@ -274,10 +306,10 @@
       itemLabel.value = state.tempItem.label;
     });
 
-    document.getElementById('modal-add').addEventListener('click', () => {
-      if (!state.tempItem) { showMsg('error', 'กรุณาเลือกสินค้า'); return; }
+    document.getElementById('btn-add-line').addEventListener('click', () => {
+      if (!state.tempItem) { showMsg('danger', 'กรุณาเลือกสินค้าก่อน'); return; }
       const qty = Number(lineQty.value);
-      if (!qty || qty <= 0) { showMsg('error', 'จำนวนต้องมากกว่า 0'); return; }
+      if (!qty || qty <= 0) { showMsg('danger', 'จำนวนต้องมากกว่า 0'); return; }
       state.lines.push({
         item:        state.tempItem.id,
         itemLabel:   state.tempItem.label,
@@ -286,7 +318,7 @@
         description: lineDesc.value || '',
       });
       refreshLines();
-      lineModal.open = false;
+      resetLineForm();
       showMsg('success', 'เพิ่มรายการแล้ว — รวม ' + state.lines.length + ' รายการ');
     });
 
@@ -297,8 +329,10 @@
     }
 
     document.getElementById('btn-save').addEventListener('click', async () => {
-      if (!state.customer) { showMsg('error', 'กรุณาเลือกลูกค้า'); return; }
-      if (state.lines.length === 0) { showMsg('error', 'กรุณาเพิ่มรายการสินค้าอย่างน้อย 1 รายการ'); return; }
+      clearMsg();
+      if (!state.customer)          { failOn(TAB_HEADER, 'กรุณาเลือกลูกค้าในแท็บ "ลูกค้า + เอกสาร"'); return; }
+      if (!val('trandate'))         { failOn(TAB_HEADER, 'กรุณาระบุวันที่เอกสาร'); return; }
+      if (state.lines.length === 0) { failOn(TAB_LINES,  'กรุณาเพิ่มรายการสินค้าอย่างน้อย 1 รายการ'); return; }
 
       const btn = document.getElementById('btn-save');
       btn.disabled = true;
@@ -308,16 +342,18 @@
         const result = await post({
           action: 'create_so',
           header: {
-            entity:     state.customer.id,
-            trandate:   val('trandate'),
-            subsidiary: val('subsidiary'),
-            location:   val('location'),
-            classid:    val('classid'),
-            department: val('department'),
-            currency:   val('currency'),
-            terms:      val('terms'),
-            salesrep:   state.salesrep ? state.salesrep.id : null,
-            memo:       document.getElementById('memo').value || '',
+            entity:      state.customer.id,
+            trandate:    val('trandate'),
+            shipdate:    val('shipdate'),
+            subsidiary:  val('subsidiary'),
+            location:    val('location'),
+            classid:     val('classid'),
+            department:  val('department'),
+            currency:    val('currency'),
+            terms:       val('terms'),
+            salesrep:    state.salesrep ? state.salesrep.id : null,
+            shipaddress: val('shipaddress'),
+            memo:        document.getElementById('memo').value || '',
           },
           lines: state.lines.map(l => ({
             item:        l.item,
@@ -330,7 +366,7 @@
         state.lines = [];
         refreshLines();
       } catch (err) {
-        showMsg('error', 'บันทึกไม่สำเร็จ: ' + err.message);
+        showMsg('danger', 'บันทึกไม่สำเร็จ: ' + err.message);
       } finally {
         btn.disabled = false;
       }

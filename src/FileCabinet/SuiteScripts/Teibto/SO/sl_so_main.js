@@ -35,8 +35,8 @@ define(['N/file', 'N/log', 'N/runtime', './lib_so_service'], function (file, log
     const timer = service.makeTimer('onRequest');
     try {
       if (context.request.method === 'GET') {
-        const user    = runtime.getCurrentUser();
-        const userCtx = JSON.stringify({ employeeId: user.id, name: user.name });
+        const ctx     = service.getRoleContext();
+        const userCtx = JSON.stringify({ employeeId: ctx.employeeId, name: ctx.name, isManager: ctx.isManager });
         const html    = file.load({ id: HTML_PATH }).getContents();
         const rendered = html
           .replace('__TBT_DS_CSS__', loadUrl(TBT_DS_CSS))
