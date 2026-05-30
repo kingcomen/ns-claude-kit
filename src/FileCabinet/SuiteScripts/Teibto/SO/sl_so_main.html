@@ -19,67 +19,79 @@
 
     <main slot="content">
 
-      <tbt-section title="ลูกค้า">
-        <tbt-field-grid columns="2">
-          <tbt-search id="customer-search" placeholder="ค้นหาลูกค้า (ชื่อหรือรหัส)" debounce="300"></tbt-search>
-          <tbt-field  id="customer-selected" label="ลูกค้าที่เลือก" value="—"></tbt-field>
-        </tbt-field-grid>
-        <tbt-dropdown id="customer-pick" label="ผลการค้นหา" style="display:none"></tbt-dropdown>
-      </tbt-section>
+      <tbt-tabs id="so-tabs">
 
-      <tbt-section title="ข้อมูลเอกสาร">
-        <tbt-field-grid columns="2">
-          <tbt-datepicker id="trandate"    label="วันที่"></tbt-datepicker>
-          <tbt-dropdown   id="subsidiary"  label="บริษัทย่อย" style="display:none"></tbt-dropdown>
-        </tbt-field-grid>
-        <tbt-field-grid columns="3">
-          <tbt-dropdown id="location"   label="สถานที่"></tbt-dropdown>
-          <tbt-dropdown id="classid"    label="ประเภทธุรกิจ"></tbt-dropdown>
-          <tbt-dropdown id="department" label="แผนก"></tbt-dropdown>
-        </tbt-field-grid>
-        <tbt-field-grid columns="3">
-          <tbt-dropdown id="currency"   label="สกุลเงิน"></tbt-dropdown>
-          <tbt-dropdown id="terms"      label="เครดิตเทอม"></tbt-dropdown>
-          <tbt-dropdown id="salesrep-pick" label="พนักงานขาย" style="display:none"></tbt-dropdown>
-        </tbt-field-grid>
-        <tbt-search id="salesrep-search" placeholder="ค้นหาพนักงานขาย" debounce="300" style="display:none"></tbt-search>
-        <tbt-field  id="salesrep-locked" label="พนักงานขาย (ล็อกตามผู้ใช้ปัจจุบัน)" value="—" style="display:none"></tbt-field>
-        <tbt-input id="memo" label="หมายเหตุ"></tbt-input>
-      </tbt-section>
+        <tbt-tabs-panel label="ลูกค้า + เอกสาร">
 
-      <tbt-section title="การจัดส่ง">
-        <tbt-field-grid columns="2">
-          <tbt-datepicker id="shipdate" label="วันที่จัดส่ง"></tbt-datepicker>
-        </tbt-field-grid>
-        <tbt-input id="shipaddress" label="ที่อยู่จัดส่ง (override)" placeholder="ปล่อยว่างเพื่อใช้ที่อยู่ default ของลูกค้า"></tbt-input>
-      </tbt-section>
+          <tbt-section title="ลูกค้า">
+            <tbt-field-grid columns="2">
+              <tbt-search id="customer-search" required label="ค้นหาลูกค้า" placeholder="ชื่อหรือรหัส" debounce="300"></tbt-search>
+              <tbt-field  id="customer-selected" label="ลูกค้าที่เลือก" value="—"></tbt-field>
+            </tbt-field-grid>
+            <tbt-dropdown id="customer-pick" label="ผลการค้นหา" style="display:none"></tbt-dropdown>
+          </tbt-section>
 
-      <tbt-section title="รายการสินค้า">
-        <tbt-table id="lines-table"></tbt-table>
+          <tbt-section title="ข้อมูลเอกสาร">
+            <tbt-field-grid columns="2">
+              <tbt-datepicker id="trandate"    required label="วันที่"></tbt-datepicker>
+              <tbt-dropdown   id="subsidiary"  label="บริษัทย่อย" style="display:none"></tbt-dropdown>
+            </tbt-field-grid>
+            <tbt-field-grid columns="3">
+              <tbt-dropdown id="location"   label="สถานที่"></tbt-dropdown>
+              <tbt-dropdown id="classid"    label="ประเภทธุรกิจ"></tbt-dropdown>
+              <tbt-dropdown id="department" label="แผนก"></tbt-dropdown>
+            </tbt-field-grid>
+            <tbt-field-grid columns="3">
+              <tbt-dropdown id="currency"   label="สกุลเงิน"></tbt-dropdown>
+              <tbt-dropdown id="terms"      label="เครดิตเทอม"></tbt-dropdown>
+              <tbt-dropdown id="salesrep-pick" label="พนักงานขาย" style="display:none"></tbt-dropdown>
+            </tbt-field-grid>
+            <tbt-search id="salesrep-search" placeholder="ค้นหาพนักงานขาย" debounce="300" style="display:none"></tbt-search>
+            <tbt-field  id="salesrep-locked" label="พนักงานขาย (ล็อกตามผู้ใช้ปัจจุบัน)" value="—" style="display:none"></tbt-field>
+            <tbt-input id="memo" label="หมายเหตุ"></tbt-input>
+          </tbt-section>
 
-        <tbt-field-grid columns="2">
-          <tbt-search id="item-search" placeholder="ค้นหาสินค้าเพื่อเพิ่มรายการ" debounce="300"></tbt-search>
-          <tbt-field  id="item-selected" label="สินค้าที่เลือก" value="—"></tbt-field>
-        </tbt-field-grid>
-        <tbt-dropdown id="item-pick" label="ผลการค้นหา" style="display:none"></tbt-dropdown>
-        <tbt-field-grid columns="3">
-          <tbt-input  id="line-qty"  label="จำนวน"        type="number" value="1"></tbt-input>
-          <tbt-input  id="line-rate" label="ราคาต่อหน่วย" type="number" placeholder="(ใช้ค่า default จากสินค้า)"></tbt-input>
-          <tbt-input  id="line-desc" label="คำอธิบาย (optional)"></tbt-input>
-        </tbt-field-grid>
-        <div style="display:flex; justify-content:flex-end; margin-top:8px">
-          <tbt-button id="btn-add-line" variant="primary" icon="plus">เพิ่มรายการ</tbt-button>
-        </div>
-      </tbt-section>
+        </tbt-tabs-panel>
 
-      <tbt-alert id="form-msg" type="info" hidden></tbt-alert>
+        <tbt-tabs-panel label="การจัดส่ง">
+          <tbt-section title="ข้อมูลจัดส่ง">
+            <tbt-field-grid columns="2">
+              <tbt-datepicker id="shipdate" label="วันที่จัดส่ง"></tbt-datepicker>
+            </tbt-field-grid>
+            <tbt-input id="shipaddress" label="ที่อยู่จัดส่ง (override)" placeholder="ปล่อยว่างเพื่อใช้ที่อยู่ default ของลูกค้า"></tbt-input>
+          </tbt-section>
+        </tbt-tabs-panel>
 
-      <tbt-section>
-        <div slot="actions">
-          <tbt-button id="btn-cancel" variant="secondary">ยกเลิก</tbt-button>
-          <tbt-button id="btn-save"   variant="primary" icon="device-floppy">สร้างใบสั่งขาย</tbt-button>
-        </div>
-      </tbt-section>
+        <tbt-tabs-panel label="รายการสินค้า">
+          <tbt-section title="รายการที่เพิ่มแล้ว">
+            <tbt-table id="lines-table"></tbt-table>
+          </tbt-section>
+
+          <tbt-section title="เพิ่มรายการใหม่">
+            <tbt-field-grid columns="2">
+              <tbt-search id="item-search" label="ค้นหาสินค้า" placeholder="พิมพ์ชื่อหรือรหัสสินค้า" debounce="300"></tbt-search>
+              <tbt-field  id="item-selected" label="สินค้าที่เลือก" value="—"></tbt-field>
+            </tbt-field-grid>
+            <tbt-dropdown id="item-pick" label="ผลการค้นหา" style="display:none"></tbt-dropdown>
+            <tbt-field-grid columns="3">
+              <tbt-input  id="line-qty"  required label="จำนวน" type="number" value="1"></tbt-input>
+              <tbt-input  id="line-rate" label="ราคาต่อหน่วย" type="number" placeholder="(ใช้ค่า default จากสินค้า)"></tbt-input>
+              <tbt-input  id="line-desc" label="คำอธิบาย (optional)"></tbt-input>
+            </tbt-field-grid>
+            <div style="display:flex; justify-content:flex-end; margin-top:var(--tbt-space-3)">
+              <tbt-button id="btn-add-line" variant="primary" icon="plus">เพิ่มรายการ</tbt-button>
+            </div>
+          </tbt-section>
+        </tbt-tabs-panel>
+
+      </tbt-tabs>
+
+      <tbt-alert id="form-msg" variant="info" style="display:none; margin-top:var(--tbt-space-4)"></tbt-alert>
+
+      <div style="display:flex; gap:var(--tbt-space-3); justify-content:flex-end; padding-top:var(--tbt-space-4); margin-top:var(--tbt-space-4); border-top:1px solid var(--tbt-border)">
+        <tbt-button id="btn-cancel" variant="secondary">ยกเลิก</tbt-button>
+        <tbt-button id="btn-save"   variant="primary" icon="device-floppy">สร้างใบสั่งขาย</tbt-button>
+      </div>
 
     </main>
   </tbt-app-shell>
@@ -121,11 +133,24 @@
       return r.json();
     }
 
-    function showMsg(type, text) {
+    const tabs = document.getElementById('so-tabs');
+    const TAB_HEADER = 0, TAB_SHIPPING = 1, TAB_LINES = 2;
+
+    function showMsg(variant, text) {
       const a = document.getElementById('form-msg');
-      a.setAttribute('type', type);
+      a.setAttribute('variant', variant);
       a.textContent = text;
-      a.hidden = false;
+      a.style.display = '';
+    }
+
+    function clearMsg() {
+      const a = document.getElementById('form-msg');
+      a.style.display = 'none';
+    }
+
+    function failOn(tabIdx, message) {
+      tabs.active = tabIdx;
+      showMsg('danger', message);
     }
 
     function blank() { return [{ value: '', label: '— ไม่ระบุ —' }]; }
@@ -150,7 +175,7 @@
         }));
         document.getElementById('terms').options      = asOpts(d.terms);
       } catch (err) {
-        showMsg('error', 'โหลด dropdown ไม่สำเร็จ: ' + err.message);
+        showMsg('danger', 'โหลด dropdown ไม่สำเร็จ: ' + err.message);
       }
     })();
 
@@ -170,7 +195,7 @@
         }));
         customerPick.style.display = '';
       } catch (err) {
-        showMsg('error', 'ค้นหาลูกค้าไม่สำเร็จ: ' + err.message);
+        showMsg('danger', 'ค้นหาลูกค้าไม่สำเร็จ: ' + err.message);
       }
     });
 
@@ -194,7 +219,7 @@
           repPick.value = state.salesrep.id;
           repPick.style.display = '';
         }
-      } catch (err) { showMsg('error', 'ดึงข้อมูลลูกค้าไม่สำเร็จ: ' + err.message); }
+      } catch (err) { showMsg('danger', 'ดึงข้อมูลลูกค้าไม่สำเร็จ: ' + err.message); }
     });
 
     // ─── Salesrep typeahead ───────────────────────────────────────────────────
@@ -209,7 +234,7 @@
         salesrepPick.options = rows.map(r => ({ value: String(r.id), label: r.entityid }));
         salesrepPick.style.display = '';
       } catch (err) {
-        showMsg('error', 'ค้นหาพนักงานขายไม่สำเร็จ: ' + err.message);
+        showMsg('danger', 'ค้นหาพนักงานขายไม่สำเร็จ: ' + err.message);
       }
     });
 
@@ -269,7 +294,7 @@
         }));
         itemPick.style.display = '';
       } catch (err) {
-        showMsg('error', 'ค้นหาสินค้าไม่สำเร็จ: ' + err.message);
+        showMsg('danger', 'ค้นหาสินค้าไม่สำเร็จ: ' + err.message);
       }
     });
 
@@ -282,9 +307,9 @@
     });
 
     document.getElementById('btn-add-line').addEventListener('click', () => {
-      if (!state.tempItem) { showMsg('error', 'กรุณาเลือกสินค้าก่อน'); return; }
+      if (!state.tempItem) { showMsg('danger', 'กรุณาเลือกสินค้าก่อน'); return; }
       const qty = Number(lineQty.value);
-      if (!qty || qty <= 0) { showMsg('error', 'จำนวนต้องมากกว่า 0'); return; }
+      if (!qty || qty <= 0) { showMsg('danger', 'จำนวนต้องมากกว่า 0'); return; }
       state.lines.push({
         item:        state.tempItem.id,
         itemLabel:   state.tempItem.label,
@@ -304,8 +329,10 @@
     }
 
     document.getElementById('btn-save').addEventListener('click', async () => {
-      if (!state.customer) { showMsg('error', 'กรุณาเลือกลูกค้า'); return; }
-      if (state.lines.length === 0) { showMsg('error', 'กรุณาเพิ่มรายการสินค้าอย่างน้อย 1 รายการ'); return; }
+      clearMsg();
+      if (!state.customer)          { failOn(TAB_HEADER, 'กรุณาเลือกลูกค้าในแท็บ "ลูกค้า + เอกสาร"'); return; }
+      if (!val('trandate'))         { failOn(TAB_HEADER, 'กรุณาระบุวันที่เอกสาร'); return; }
+      if (state.lines.length === 0) { failOn(TAB_LINES,  'กรุณาเพิ่มรายการสินค้าอย่างน้อย 1 รายการ'); return; }
 
       const btn = document.getElementById('btn-save');
       btn.disabled = true;
@@ -339,7 +366,7 @@
         state.lines = [];
         refreshLines();
       } catch (err) {
-        showMsg('error', 'บันทึกไม่สำเร็จ: ' + err.message);
+        showMsg('danger', 'บันทึกไม่สำเร็จ: ' + err.message);
       } finally {
         btn.disabled = false;
       }
